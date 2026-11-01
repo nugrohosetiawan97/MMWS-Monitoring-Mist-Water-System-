@@ -1,0 +1,23 @@
+# MMWS — Monitoring Mist Water System (Cloudflare Workers)
+name = "mmws-monitoring-mist-water-system"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+# Satu Durable Object menyimpan seluruh data trafo (penyimpanan SQLite, tersedia di paket gratis)
+[[durable_objects.bindings]]
+name = "MMWS"
+class_name = "MmwsDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MmwsDO"]
+
+# Model termal, susut umur & keputusan mist dihitung tiap menit
+[triggers]
+crons = ["* * * * *"]
+
+[observability]
+enabled = true
+
+# Domain sendiri: hapus tanda # lalu sesuaikan (domain harus sudah ada di akun Cloudflare yang sama)
+# routes = [ { pattern = "mmws2.tamabyte.com", custom_domain = true } ]

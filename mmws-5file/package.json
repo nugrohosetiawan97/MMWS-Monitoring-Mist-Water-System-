@@ -1,0 +1,6 @@
+{
+  "name": "mmws-monitoring-mist-water-system",
+  "private": true,
+  "scripts": { "deploy": "wrangler deploy" },
+  "devDependencies": { "wrangler": "^4.40.0" }
+}
