@@ -1,0 +1,828 @@
+<title>MMWS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: control-room console — skema trafo hidup sebagai pusat, gauge di kanan, tren & umur di bawah. Satu tema gelap yang disengaja (ruang kontrol). */
+:root{
+  --bg:#08101d; --panel:#0e1829; --panel-2:#13213a; --line:#1e304d; --line-2:#29406a;
+  --ink:#e7eef8; --ink-2:#a2b4cd; --ink-3:#7186a6;
+  --oil:#f2a541; --oil-soft:rgba(242,165,65,.14); --water:#3cc7ea; --water-soft:rgba(60,199,234,.14);
+  --good:#3ccf8c; --warn:#f2b33d; --crit:#ff5f5f; --good-bg:rgba(60,207,140,.13); --warn-bg:rgba(242,179,61,.14); --crit-bg:rgba(255,95,95,.15);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --f-display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.45;margin:0;
+  background-image:radial-gradient(1200px 500px at 70% -10%,rgba(57,135,229,.10),transparent 60%),radial-gradient(900px 400px at 0% 0%,rgba(242,165,65,.06),transparent 60%);background-attachment:fixed}
+.wrap{max-width:1440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.02em}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.lbl{font-family:var(--f-display);font-weight:600;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between;padding:10px 0 14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:40px;height:40px;flex:none;border-radius:10px;background:linear-gradient(135deg,var(--oil),#c86a1d);display:grid;place-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+.mark svg{width:24px;height:24px}
+.brand h1{font-size:22px;font-weight:700;line-height:1.1}
+.brand .sub{color:var(--ink-2);font-size:13px}
+.hdr-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.04em;padding:5px 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.pill.live{color:var(--good);border-color:rgba(60,207,140,.4)} .pill.live i{background:var(--good);box-shadow:0 0 0 0 rgba(60,207,140,.6);animation:pulse 2s infinite}
+.pill.demo{color:var(--oil);border-color:rgba(242,165,65,.45)} .pill.demo i{background:var(--oil)}
+.pill.web{color:var(--water);border-color:rgba(60,199,234,.45)} .pill.web i{background:var(--water)}
+.empty-note{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--ink-3);font-size:13px;background:rgba(10,20,36,.55);border-radius:8px}
+.empty-note[hidden]{display:none!important}
+.webcta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill.off{color:var(--crit);border-color:rgba(255,95,95,.45)} .pill.off i{background:var(--crit)}
+.pill.good{color:var(--good);background:var(--good-bg);border-color:transparent}.pill.good i{background:var(--good)}
+.pill.warn{color:var(--warn);background:var(--warn-bg);border-color:transparent}.pill.warn i{background:var(--warn)}
+.pill.crit{color:var(--crit);background:var(--crit-bg);border-color:transparent}.pill.crit i{background:var(--crit)}
+.pill.water{color:var(--water);background:var(--water-soft);border-color:transparent}.pill.water i{background:var(--water)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(60,207,140,.55)}70%{box-shadow:0 0 0 8px rgba(60,207,140,0)}100%{box-shadow:0 0 0 0 rgba(60,207,140,0)}}
+.btn{font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.04em;padding:7px 14px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--oil);border-color:var(--oil);color:#1b1206}
+.btn.water{background:var(--water);border-color:var(--water);color:#06202a}
+.btn.ghost{background:transparent}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.clock{font-family:var(--f-mono);font-size:15px;color:var(--ink)}
+/* alarm banner */
+.alarmbar{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,95,95,.35);background:linear-gradient(90deg,rgba(255,95,95,.14),rgba(255,95,95,.04))}
+.alarmbar.warn{border-color:rgba(242,179,61,.35);background:linear-gradient(90deg,rgba(242,179,61,.14),rgba(242,179,61,.03))}
+.alarmbar strong{font-family:var(--f-display);letter-spacing:.06em}
+.notice{margin-top:12px;padding:9px 12px;border-radius:10px;border:1px dashed var(--line-2);color:var(--ink-2);font-size:13.5px}
+/* grid */
+.grid{display:grid;gap:14px;margin-top:14px}
+.hero{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.row2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.row3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr)}
+.row4{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:1100px){.hero,.row2,.row3,.row4{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel),#0c1625);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0;position:relative}
+.card-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.card-h h3{font-size:16px;font-weight:600}
+.note{color:var(--ink-3);font-size:12.5px}
+/* schematic */
+.schem{position:relative;border-radius:10px;overflow:hidden;background:
+  linear-gradient(rgba(57,135,229,.06) 1px,transparent 1px) 0 0/24px 24px,
+  linear-gradient(90deg,rgba(57,135,229,.06) 1px,transparent 1px) 0 0/24px 24px,#0a1424}
+.schem{overflow-x:auto}
+.schem svg{display:block;width:100%;min-width:640px;height:auto}
+.schem .tag rect{fill:#0b1526;stroke:var(--line-2);stroke-width:1}
+.schem .tag.warn rect{stroke:var(--warn)} .schem .tag.crit rect{stroke:var(--crit)} .schem .tag.water rect{stroke:var(--water)}
+.schem .tag .k{font-family:var(--f-display);font-weight:600;font-size:11px;letter-spacing:.12em;fill:var(--ink-3)}
+.schem .tag .v{font-family:var(--f-mono);font-weight:600;font-size:16px;fill:var(--ink)}
+.schem .tag .s{font-family:var(--f-mono);font-size:10px;fill:var(--ink-3)}
+.schem .lead{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3;fill:none}
+.schem .steel{fill:#1a2b45;stroke:#33507c;stroke-width:1.2}
+.schem .steel-2{fill:#15253d;stroke:#2c4670;stroke-width:1}
+.schem .porc{fill:#5b6f8e;stroke:#8aa0c2;stroke-width:.8}
+.schem .fin{stroke:#3a5a8a;stroke-width:3}
+.schem .pipe{fill:none;stroke:#33507c;stroke-width:6;stroke-linecap:round}
+.schem .oilflow{fill:none;stroke:var(--oil);stroke-width:2;stroke-dasharray:4 10;opacity:.55;animation:flow 2.4s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.schem .fan{transform-box:fill-box;transform-origin:center;animation:spin 1.1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.schem .drop{fill:var(--water);opacity:0}
+.schem.mist-on .drop{animation:rise 1.8s ease-out infinite}
+@keyframes rise{0%{opacity:0;transform:translateY(0)}15%{opacity:.85}100%{opacity:0;transform:translateY(-120px)}}
+.schem .nozzle{fill:#2c4670} .schem.mist-on .nozzle{fill:var(--water)}
+.schem .mistcloud{fill:url(#mistg);opacity:0;transition:opacity .8s} .schem.mist-on .mistcloud{opacity:1}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.legend-row span{display:inline-flex;gap:6px;align-items:center}
+.legend-row b{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* gauges */
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gauge{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 10px 8px;text-align:center;min-width:0}
+.gauge svg{width:100%;max-width:220px;height:auto;display:block;margin:0 auto}
+.gauge .gv{font-family:var(--f-mono);font-weight:600;font-size:30px;fill:var(--ink)}
+.gauge .gu{font-family:var(--f-mono);font-size:12px;fill:var(--ink-2)}
+.gauge .gt{font-family:var(--f-mono);font-size:10px;fill:var(--ink-3)}
+.gauge .sub{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+/* mist control */
+.air{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.air>div{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.air .v{font-family:var(--f-mono);font-weight:600;font-size:17px;margin-top:2px}
+@media (max-width:560px){.air{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mist{margin-top:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.mist-top{display:flex;gap:14px;align-items:center}
+.orb{width:74px;height:74px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.06em;border:2px solid var(--line-2);color:var(--ink-3);background:radial-gradient(circle at 50% 35%,#182a46,#0c1626)}
+.orb.on{color:#04212b;border-color:var(--water);background:radial-gradient(circle at 50% 35%,#8fe6fb,var(--water));box-shadow:0 0 28px rgba(60,199,234,.45)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden;flex-wrap:wrap}
+.seg button{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.06em;padding:6px 10px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--water);color:#06202a}
+.mist .why{font-size:13px;color:var(--ink-2);margin-top:8px}
+.mist .meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12.5px;color:var(--ink-3)}
+/* KPI */
+.kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gauges{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;min-width:0}
+.kpi .v{font-family:var(--f-mono);font-size:24px;font-weight:600;margin-top:2px;line-height:1.15}
+.kpi .v small{font-size:12px;color:var(--ink-2);font-weight:400}
+.kpi .d{font-size:12px;color:var(--ink-3);margin-top:2px}
+.chartbox{position:relative;height:280px}
+.chartbox.sm{height:210px}
+.seg-sm{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg-sm button{font-family:var(--f-mono);font-size:12px;padding:4px 9px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.seg-sm button[aria-pressed="true"]{background:var(--line-2);color:var(--ink)}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--ink-2)}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg b{width:14px;height:3px;border-radius:2px;display:inline-block}
+.lg b.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)!important;height:2px}
+.lg b.band{height:10px;width:12px;background:var(--water-soft)!important;border:1px solid var(--water)}
+/* life */
+.life{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.life svg{width:150px;height:150px;flex:none}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13.5px;flex:1;min-width:200px}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;text-align:right;font-family:var(--f-mono)}
+.cmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.cmp>div{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.cmp .v{font-family:var(--f-mono);font-weight:600;font-size:17px}
+.cmp .d{font-size:11.5px;color:var(--ink-3)}
+.drop-zone{border:1.5px dashed var(--line-2);border-radius:10px;padding:14px;text-align:center;color:var(--ink-2);font-size:13px}
+.drop-zone.over{border-color:var(--water);background:var(--water-soft)}
+.prog{height:8px;border-radius:4px;background:var(--panel-2);overflow:hidden;margin-top:8px}.prog span{display:block;height:100%;width:0;background:var(--water);transition:width .2s}
+/* tables & log */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+td.r,th.r{text-align:right}
+.log{list-style:none;margin:0;padding:0;max-height:300px;overflow-y:auto}
+.log li{display:grid;grid-template-columns:52px 10px 1fr;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.log li .tm{font-family:var(--f-mono);color:var(--ink-3);font-size:12px}
+.log li .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);align-self:center}
+.log li.mist-on .dot{background:var(--water)} .log li.mist-off .dot{background:var(--ink-3)} .log li.input .dot{background:var(--oil)} .log li.mode .dot,.log li.config .dot{background:var(--s1)}
+/* modal */
+dialog{border:1px solid var(--line-2);border-radius:16px;background:var(--panel);color:var(--ink);padding:0;width:min(640px,calc(100vw - 32px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(3,7,14,.72);backdrop-filter:blur(3px)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-b{padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 170px)}
+.dlg-f{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;padding:12px 18px;border-top:1px solid var(--line)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 12px}
+.fld{display:grid;gap:3px;min-width:0}
+.fld label{font-size:12px;color:var(--ink-2)}
+input,select{font:inherit;font-size:14px;padding:7px 9px;border-radius:7px;border:1px solid var(--line-2);background:#0a1322;color:var(--ink);min-width:0;width:100%}
+fieldset{border:0;padding:0;margin:0 0 16px} legend{padding:0;margin-bottom:8px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer} .chk input{width:auto}
+.msg{font-size:13px;color:var(--ink-2)}
+.x{background:none;border:0;color:var(--ink-2);font-size:22px;cursor:pointer;line-height:1}
+textarea{width:100%;font-family:var(--f-mono);font-size:12px;background:#0a1322;color:var(--ink);border:1px solid var(--line-2);border-radius:7px;padding:8px}
+.foot{margin-top:18px;color:var(--ink-3);font-size:12.5px;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1b1206" stroke-width="2" stroke-linecap="round"><path d="M4 18V9h16v9"/><path d="M8 9V5M12 9V4M16 9V5"/><path d="M7 13h10"/><path d="M6 21c1-1 2-1 3 0s2 1 3 0 2-1 3 0 2 1 3 0"/></svg></div>
+      <div style="min-width:0">
+        <h1>MMWS</h1>
+        <div class="sub" id="subtitle">Monitoring Mist Water System · Trafo 1 150/20 kV 60 MVA · GIS Randugarut</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span class="pill" id="connPill"><i></i>Menghubungkan…</span>
+      <span class="clock" id="clock">--:--</span>
+      <button class="btn primary" id="btnInput" type="button">Input data</button>
+      <button class="btn" id="btnImport" type="button">Impor riwayat</button>
+      <button class="btn" id="btnSet" type="button">Pengaturan</button>
+      <button class="btn ghost" id="btnExport" type="button">Unduh CSV</button>
+    </div>
+  </header>
+  <div class="alarmbar" id="alarmBar" hidden></div>
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="grid hero">
+    <div class="card">
+      <div class="card-h"><h3 id="schemTitle">Kondisi trafo saat ini</h3><span class="note" id="schemNote">Nilai di skema diperbarui setiap data masuk</span></div>
+      <div class="schem" id="schem">
+        <svg viewBox="0 0 800 440" role="img" aria-label="Skema trafo dengan radiator, kipas dan nozzle mist beserta suhu terkini">
+          <defs>
+            <linearGradient id="tankg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" id="tankTop" stop-color="#7a3d1a"/><stop offset="1" stop-color="#16263f"/></linearGradient>
+            <radialGradient id="hotg" cx=".5" cy=".42" r=".55"><stop offset="0" id="hotCore" stop-color="#ff7a2e" stop-opacity=".85"/><stop offset="1" stop-color="#ff7a2e" stop-opacity="0"/></radialGradient>
+            <linearGradient id="mistg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#3cc7ea" stop-opacity=".45"/><stop offset="1" stop-color="#3cc7ea" stop-opacity="0"/></linearGradient>
+          </defs>
+          <!-- ground -->
+          <rect x="40" y="388" width="680" height="6" rx="3" fill="#13213a"/>
+          <rect x="150" y="366" width="280" height="22" fill="#132239" stroke="#26406a"/>
+          <!-- conservator -->
+          <rect class="steel" x="190" y="58" width="200" height="34" rx="17"/>
+          <path class="pipe" d="M370 92V128" style="stroke-width:4"/>
+          <!-- HV bushings -->
+          <g id="hvb">
+            <rect class="porc" x="205" y="100" width="14" height="48" rx="3"/><rect class="porc" x="245" y="96" width="14" height="52" rx="3"/><rect class="porc" x="285" y="100" width="14" height="48" rx="3"/>
+            <path d="M200 112h24M200 122h24M200 132h24M240 108h24M240 118h24M240 128h24M240 138h24M280 112h24M280 122h24M280 132h24" stroke="#8aa0c2" stroke-width="2"/>
+            <circle cx="212" cy="98" r="4" fill="#c9d6ea"/><circle cx="252" cy="94" r="4" fill="#c9d6ea"/><circle cx="292" cy="98" r="4" fill="#c9d6ea"/>
+          </g>
+          <!-- LV bushings -->
+          <rect class="porc" x="330" y="122" width="10" height="26" rx="2"/><rect class="porc" x="350" y="122" width="10" height="26" rx="2"/><rect class="porc" x="370" y="130" width="10" height="18" rx="2"/>
+          <!-- tank -->
+          <rect x="160" y="148" width="260" height="218" rx="10" fill="url(#tankg)" stroke="#3a5a8a" stroke-width="1.5"/>
+          <ellipse cx="290" cy="252" rx="110" ry="96" fill="url(#hotg)" id="hotGlow"/>
+          <g opacity=".75">
+            <rect x="200" y="178" width="70" height="150" rx="14" fill="none" stroke="#c7864a" stroke-width="2"/>
+            <rect x="310" y="178" width="70" height="150" rx="14" fill="none" stroke="#c7864a" stroke-width="2"/>
+            <path d="M206 192h58M206 206h58M206 220h58M206 234h58M206 248h58M206 262h58M206 276h58M206 290h58M206 304h58M206 318h58M316 192h58M316 206h58M316 220h58M316 234h58M316 248h58M316 262h58M316 276h58M316 290h58M316 304h58M316 318h58" stroke="#b87643" stroke-width="1.2" opacity=".7"/>
+          </g>
+          <circle id="hsDot" cx="235" cy="190" r="6" fill="#ffb26b"/>
+          <!-- pipes to radiator -->
+          <path class="pipe" d="M420 172H468"/><path class="pipe" d="M420 342H468"/>
+          <path class="oilflow" d="M420 172H468"/><path class="oilflow" d="M468 342H420"/>
+          <!-- radiator -->
+          <rect class="steel-2" x="462" y="160" width="230" height="16" rx="6"/>
+          <rect class="steel-2" x="462" y="334" width="230" height="16" rx="6"/>
+          <g id="fins"></g>
+          <!-- mist cloud & droplets -->
+          <rect class="mistcloud" x="470" y="236" width="214" height="128"/>
+          <g id="drops"></g>
+          <!-- nozzle line -->
+          <path d="M468 372H690" stroke="#2c4670" stroke-width="4"/>
+          <g id="nozzles"></g>
+          <!-- fans -->
+          <g id="fans"></g>
+          <!-- leader lines -->
+          <path class="lead" d="M370 128 L440 52"/>
+          <path class="lead" d="M235 190 L120 140"/>
+          <path class="lead" d="M260 230 L120 230"/>
+          
+          <path class="lead" d="M690 372 L748 280"/>
+          
+          <!-- tags -->
+          <g class="tag" id="tag-oti" transform="translate(420,2)"><rect width="120" height="50" rx="8"/><text class="k" x="10" y="16">TOP-OIL</text><text class="v" id="v-oti" x="10" y="35">--</text><text class="s" id="s-oti" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-hv" transform="translate(16,112)"><rect width="104" height="50" rx="8"/><text class="k" x="10" y="16">HOT-SPOT HV</text><text class="v" id="v-hv" x="10" y="35">--</text><text class="s" id="s-hv" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-lv" transform="translate(16,204)"><rect width="104" height="50" rx="8"/><text class="k" x="10" y="16">HOT-SPOT LV</text><text class="v" id="v-lv" x="10" y="35">--</text><text class="s" id="s-lv" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-load" transform="translate(286,2)"><rect width="120" height="50" rx="8"/><text class="k" x="10" y="16">BEBAN</text><text class="v" id="v-load" x="10" y="35">--</text><text class="s" id="s-load" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-amb" transform="translate(648,2)"><rect width="140" height="50" rx="8"/><text class="k" x="10" y="16">AMBIEN · DHT11</text><text class="v" id="v-amb" x="10" y="35">--</text><text class="s" id="s-amb" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-in" transform="translate(688,230)"><rect width="110" height="50" rx="8"/><text class="k" x="10" y="16">UDARA MASUK</text><text class="v" id="v-in" x="10" y="35">--</text><text class="s" id="s-in" x="10" y="45">--</text></g>
+          <g class="tag" id="tag-tank" transform="translate(16,300)"><rect width="104" height="50" rx="8"/><text class="k" x="10" y="16">DINDING TANGKI</text><text class="v" id="v-tank" x="10" y="35">--</text><text class="s" id="s-tank" x="10" y="45">DS18B20</text></g>
+          <path class="lead" d="M120 327 L160 327"/>
+          <text x="577" y="414" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#7186a6" id="mistLbl">MIST OFF</text>
+        </svg>
+      </div>
+      <div class="legend-row"><span><b style="background:var(--oil)"></b>aliran minyak</span><span><b style="background:var(--water)"></b>kabut aktif</span><span><b style="background:#ff7a2e"></b>intensitas hot-spot</span><span id="srcNote" class="note"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>Indikator utama</h3><span class="note" id="updated">—</span></div>
+      <div class="gauges">
+        <div class="gauge"><div class="lbl">Beban</div><svg viewBox="0 0 200 150" id="gLoad"></svg><div class="sub" id="gLoadSub">—</div></div>
+        <div class="gauge"><div class="lbl">Hot-spot HV</div><svg viewBox="0 0 200 150" id="gHot"></svg><div class="sub" id="gHotSub">—</div></div>
+      </div>
+      <div class="air" id="airStrip"></div>
+      <div class="mist">
+        <div class="mist-top">
+          <div class="orb" id="orb">OFF</div>
+          <div style="display:grid;gap:8px;min-width:0">
+            <div class="lbl">Mist water system</div>
+            <div class="seg" id="modeSeg" role="group" aria-label="Mode kendali mist">
+              <button type="button" data-mode="auto">AUTO</button><button type="button" data-mode="threshold">AMBANG</button><button type="button" data-mode="manual">MANUAL</button><button type="button" data-mode="off">OFF</button>
+            </div>
+            <div id="manualBtns" hidden><button class="btn water" type="button" id="mOn">Nyalakan</button> <button class="btn" type="button" id="mOff">Matikan</button></div>
+          </div>
+        </div>
+        <div class="why" id="mistWhy">—</div>
+        <div class="meta" id="mistMeta"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid kpis" id="kpis"></section>
+
+  <section class="grid row2">
+    <div class="card">
+      <div class="card-h"><h3>Tren suhu</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><div class="lg" id="lgTrend"></div><div class="seg-sm" id="rangeSeg"><button type="button" data-h="6">6j</button><button type="button" data-h="24" aria-pressed="true">24j</button><button type="button" data-h="72">3h</button><button type="button" data-h="168">7h</button></div></div></div>
+      <div class="chartbox"><canvas id="cTrend" aria-label="Grafik tren suhu hot-spot, top-oil, udara masuk dan ambien"></canvas><div class="empty-note" id="enTrend" hidden>Belum ada data. Impor riwayat logsheet/SCADA untuk melihat tren hot-spot dan top-oil per jam.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Prediksi hot-spot</h3><div class="lg" id="lgPred"></div></div>
+      <div class="chartbox"><canvas id="cPred" aria-label="Prediksi hot-spot dengan dan tanpa mist"></canvas><div class="empty-note" id="enPred" hidden>Prediksi dan kendali mist aktif setelah sensor ESP32 dan server terpasang.</div></div>
+      <p class="note" id="predNote" style="margin:6px 0 0">—</p>
+    </div>
+  </section>
+
+  <section class="grid row3">
+    <div class="card">
+      <div class="card-h"><h3>Beban</h3><span class="note">MVA · garis putus = 80/90/100%</span></div>
+      <div class="chartbox sm"><canvas id="cLoad"></canvas><div class="empty-note" id="enLoad" hidden>Belum ada data beban.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>F<sub>EQA</sub> harian</h3><div class="seg-sm" id="daysSeg"><button type="button" data-n="30" aria-pressed="true">30h</button><button type="button" data-n="90">90h</button><button type="button" data-n="365">1th</button></div></div>
+      <div class="lg" id="lgDays" style="margin:-4px 0 6px"></div>
+      <div class="chartbox sm"><canvas id="cDays"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Umur isolasi</h3><span class="note" id="lifeRef">—</span></div>
+      <div class="life"><svg viewBox="0 0 150 150" id="lifeRing"></svg><dl class="kv" id="lifeKv"></dl></div>
+      <div class="cmp" id="cmpBox"></div>
+    </div>
+  </section>
+
+  <section class="grid row4">
+    <div class="card">
+      <div class="card-h"><h3>Sensor &amp; perangkat</h3><span class="note">data &gt; 5 menit dianggap basi</span></div>
+      <div class="tbl"><table id="sensTable"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Log kejadian</h3><span class="note">keputusan mist, input, alarm</span></div>
+      <ul class="log" id="logList"></ul>
+    </div>
+  </section>
+
+  <div class="foot"><span>Model termal IEC 60076-7:2018 · laju penuaan relatif acuan <span id="refFoot">98</span> °C · Sistem pemantauan penelitian, bukan sistem proteksi.</span><span id="verFoot">MMWS v2.0</span></div>
+</div>
+
+<!-- dialogs -->
+<dialog id="dlgInput">
+  <form method="dialog" id="formInput">
+    <div class="dlg-h"><h3>Input data lapangan</h3><button class="x" value="cancel" aria-label="Tutup">×</button></div>
+    <div class="dlg-b">
+      <p class="note" style="margin-top:0">Isi beban dan pembacaan dial dari panel atau logsheet. Kosongkan yang tidak dibaca. Hot-spot dihitung dari OTI yang Anda isi; bila OTI kosong, dipakai top-oil model.</p>
+      <div class="fgrid">
+        <div class="fld"><label for="inMw">Beban (MW)</label><input id="inMw" type="number" step="0.1" inputmode="decimal"></div>
+        <div class="fld"><label for="inA">atau Arus 20 kV (A)</label><input id="inA" type="number" step="1" inputmode="decimal"></div>
+        <div class="fld"><label for="inOti">OTI (°C)</label><input id="inOti" type="number" step="0.5" inputmode="decimal"></div>
+        <div class="fld"><label for="inWh">WTI HV (°C)</label><input id="inWh" type="number" step="0.5" inputmode="decimal"></div>
+        <div class="fld"><label for="inWl">WTI LV (°C)</label><input id="inWl" type="number" step="0.5" inputmode="decimal"></div>
+        <div class="fld" id="pinFld1"><label for="inPin">PIN operator</label><input id="inPin" type="password" autocomplete="current-password"></div>
+      </div>
+    </div>
+    <div class="dlg-f"><span class="msg" id="inMsg"></span><button class="btn" value="cancel">Batal</button><button class="btn primary" id="inSave" value="default" type="submit">Simpan</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgSet">
+  <form method="dialog" id="formSet">
+    <div class="dlg-h"><h3>Pengaturan sistem</h3><button class="x" value="cancel" aria-label="Tutup">×</button></div>
+    <div class="dlg-b">
+      <fieldset><legend class="lbl">Trafo &amp; model (dari nameplate / test report)</legend>
+        <div class="fgrid">
+          <div class="fld"><label for="c_Sr">Daya ONAF (MVA)</label><input id="c_Sr" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_vLV">Tegangan LV (kV)</label><input id="c_vLV" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_pf">Faktor daya</label><input id="c_pf" type="number" step="0.01"></div>
+          <div class="fld"><label for="c_R">Rasio rugi R</label><input id="c_R" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_dor">Δθor (K)</label><input id="c_dor" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_hgH">H·gr HV (K)</label><input id="c_hgH" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_hgL">H·gr LV (K)</label><input id="c_hgL" type="number" step="0.1"></div>
+          <div class="fld"><label for="c_to">τo (menit)</label><input id="c_to" type="number" step="1"></div>
+          <div class="fld"><label for="c_ref">Acuan penuaan</label><select id="c_ref"><option value="98">Kertas biasa 98 °C</option><option value="110">Thermally upgraded 110 °C</option></select></div>
+          <div class="fld"><label for="c_energize">Tanggal energize</label><input id="c_energize" type="date"></div>
+          <div class="fld"><label for="c_life">Umur normal (jam)</label><input id="c_life" type="number" step="1000"></div>
+          <div class="fld"><label for="c_fHist">F<sub>EQA</sub> sebelum ada data</label><input id="c_fHist" type="number" step="0.01"></div>
+        </div>
+      </fieldset>
+      <fieldset><legend class="lbl">Batas alarm (sesuai setting rele/dial)</legend>
+        <div class="fgrid">
+          <div class="fld"><label for="c_l1">Beban level 1 (%)</label><input id="c_l1" type="number"></div>
+          <div class="fld"><label for="c_l2">Beban level 2 (%)</label><input id="c_l2" type="number"></div>
+          <div class="fld"><label for="c_l3">Beban level 3 (%)</label><input id="c_l3" type="number"></div>
+          <div class="fld"><label for="c_otiA">OTI alarm (°C)</label><input id="c_otiA" type="number" step="0.5"></div>
+          <div class="fld"><label for="c_otiT">OTI trip (°C)</label><input id="c_otiT" type="number" step="0.5"></div>
+          <div class="fld"><label for="c_wtiA">WTI alarm (°C)</label><input id="c_wtiA" type="number" step="0.5"></div>
+          <div class="fld"><label for="c_wtiT">WTI trip (°C)</label><input id="c_wtiT" type="number" step="0.5"></div>
+        </div>
+      </fieldset>
+      <fieldset><legend class="lbl">Kendali mist</legend>
+        <div class="fgrid">
+          <div class="fld"><label for="c_sp">Setpoint hot-spot (°C)</label><input id="c_sp" type="number" step="0.5"></div>
+          <div class="fld"><label for="c_hor">Horizon prediksi (jam)</label><input id="c_hor" type="number" step="0.5" min="1" max="6"></div>
+          <div class="fld"><label for="c_rhCut">Matikan bila RH ≥ (%)</label><input id="c_rhCut" type="number" step="1"></div>
+          <div class="fld"><label for="c_ton">Ambang suhu tangki (°C)</label><input id="c_ton" type="number" step="0.5"></div>
+          <div class="fld"><label for="c_minOn">ON minimum (menit)</label><input id="c_minOn" type="number" step="1"></div>
+          <div class="fld"><label for="c_mistLpm">Debit total (L/menit)</label><input id="c_mistLpm" type="number" step="0.05"></div>
+        </div>
+      </fieldset>
+      <fieldset id="simFs" hidden><legend>Sumber data &amp; data uji</legend>
+        <label class="chk"><input type="checkbox" id="simOn"> Jalankan ESP32 virtual (simulator) — data ditandai SIMULASI</label>
+        <p class="note" id="simInfo" style="margin:6px 0"></p>
+        <button class="btn" type="button" id="btnReset">Hapus data uji</button>
+        <span class="note">Menghapus data live, tren dan log. Pengaturan dan data impor tetap.</span>
+      </fieldset>
+      <div class="fld" id="pinFld2" style="max-width:220px"><label for="setPin">PIN operator</label><input id="setPin" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="dlg-f"><span class="msg" id="setMsg"></span><button class="btn" value="cancel">Batal</button><button class="btn primary" id="setSave" value="default" type="submit">Simpan pengaturan</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgExport">
+  <form method="dialog">
+    <div class="dlg-h"><h3>Unduh data</h3><button class="x" value="cancel" aria-label="Tutup">×</button></div>
+    <div class="dlg-b">
+      <p class="note" style="margin-top:0">Format CSV ini langsung bisa diimpor ke tab <strong>Data Trafo &amp; Umur</strong> di dashboard analisis (periode sebelum/sesudah mist). Riwayat di edge server disimpan 7 hari; arsip harian lengkap ada di folder data edge server.</p>
+      <div class="fgrid" style="margin-bottom:10px">
+        <div class="fld"><label for="exDays">Rentang</label><select id="exDays"><option value="1">1 hari</option><option value="3">3 hari</option><option value="7" selected>7 hari</option></select></div>
+        <div class="fld"><label for="exStep">Interval</label><select id="exStep"><option value="10">10 menit</option><option value="60" selected>1 jam</option></select></div>
+      </div>
+      <div id="exLinkWrap"></div>
+      <textarea id="exText" rows="8" readonly hidden></textarea>
+    </div>
+    <div class="dlg-f"><span class="msg" id="exMsg"></span><button class="btn" value="cancel">Tutup</button><button class="btn primary" type="button" id="exGo">Siapkan CSV</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgImport">
+  <form method="dialog" id="formImport">
+    <div class="dlg-h"><h3>Impor riwayat bulan-bulan sebelumnya</h3><button class="x" value="cancel" aria-label="Tutup">×</button></div>
+    <div class="dlg-b">
+      <p class="note" style="margin-top:0">Data logsheet atau ekspor SCADA dihitung dengan model yang sama (IEC 60076-7) untuk mengisi F<sub>EQA</sub> harian, susut umur, dan pembanding sebelum/sesudah mist. Data impor tidak mengubah kendali mist.</p>
+      <div class="fgrid">
+        <div class="fld"><label for="imPhase">Periode</label><select id="imPhase"><option value="before">Sebelum implementasi mist</option><option value="after">Sesudah implementasi mist</option><option value="hist">Riwayat umum</option></select></div>
+        <div class="fld"><label for="imLabel">Keterangan</label><input id="imLabel" type="text" placeholder="mis. Logsheet April 2026"></div>
+        <div class="fld"><label for="imPf">Faktor daya (kolom MW)</label><input id="imPf" type="number" step="0.01" value="0.95"></div>
+        <div class="fld"><label for="imTa">Ambien pengganti bila kosong (°C)</label><input id="imTa" type="number" step="0.1" value="29"></div>
+        <div class="fld" id="pinFld3"><label for="imPin">PIN operator</label><input id="imPin" type="password" autocomplete="current-password"></div>
+      </div>
+      <div class="drop-zone" id="dropZone" style="margin-top:12px"><label for="imFile" style="cursor:pointer">Seret file CSV ke sini atau <u>pilih file</u></label><input id="imFile" type="file" accept=".csv,.txt,text/csv" hidden></div>
+      <div class="fld" style="margin-top:10px"><label for="imText">atau tempel isi CSV / blok sel dari Excel</label><textarea id="imText" rows="5" placeholder="waktu,mw,arus_a,ambien,rh,oti,wti_hv,wti_lv&#10;2026-04-01 00:00,31.2,,26.4,86,52,60,58"></textarea></div>
+      <p class="note">Kolom wajib: <span class="mono">waktu</span> + salah satu <span class="mono">mva</span> / <span class="mono">mw</span> / <span class="mono">arus_a</span> (sisi 20 kV). Opsional: <span class="mono">ambien, rh, oti, wti_hv, wti_lv</span>. Waktu <span class="mono">YYYY-MM-DD HH:MM</span> atau <span class="mono">DD/MM/YYYY HH:MM</span>. Pemisah koma, titik koma atau tab.</p>
+      <div class="msg" id="imPreview"></div>
+      <div class="prog" id="imProg" hidden><span></span></div>
+      <div class="tbl" style="margin-top:12px"><table id="imTable"></table></div>
+    </div>
+    <div class="dlg-f"><span class="msg" id="imMsg"></span><button class="btn" value="cancel">Tutup</button><button class="btn primary" id="imGo" type="button">Impor</button></div>
+  </form>
+</dialog>
+
+<script>
+/*__CORE__*/
+</script>
+<script src="chart.umd.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const nf=(v,d=1)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const hm=t=>{const d=new Date(t+7*36e5);return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');};
+const dm=t=>{const d=new Date(t+7*36e5);return d.getUTCDate()+'/'+(d.getUTCMonth()+1)+' '+hm(t);};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const API='/api/mmws', WSP='/ws/mmws', POLL=!!window.MMWS_POLL;
+let OPEN=false;
+function cloudFlags(s){if(!s)return;if(s.open){OPEN=true;if(!pinCache)pinCache='-';}if(POLL&&s.src)setConn(s.src.sim?'demo':'live',s.src.sim?'SIMULASI':'LIVE');}
+let daysN=30, MODE='init', snap=null, hist={cols:[],rows:[]}, days=[], rangeH=24, ws=null, wsTries=0, DS={}, pinCache='';
+try{pinCache=sessionStorage.getItem('mmws-pin')||'';}catch(e){}
+
+/* ---------- static schematic parts ---------- */
+(function build(){
+  const fins=$('#fins'), noz=$('#nozzles'), drops=$('#drops'), fans=$('#fans'); let h='';
+  for(let i=0;i<14;i++){const x=474+i*15.5;h+=`<line class="fin" x1="${x}" y1="176" x2="${x}" y2="334"/>`;} fins.innerHTML=h; h='';
+  for(let i=0;i<6;i++){const x=486+i*38;h+=`<rect class="nozzle" x="${x-4}" y="364" width="8" height="8" rx="2"/>`;} noz.innerHTML=h; h='';
+  for(let i=0;i<24;i++){const x=480+((i*37)%200), y=360-((i*13)%20), dl=(i*0.17)%1.8;h+=`<circle class="drop" cx="${x}" cy="${y}" r="${1.6+(i%3)*0.6}" style="animation-delay:${dl}s"/>`;} drops.innerHTML=h; h='';
+  [520,577,634].forEach(cx=>{h+=`<circle cx="${cx}" cy="384" r="0" /><g><circle cx="${cx}" cy="378" r="15" fill="#0f1c31" stroke="#2c4670"/><g class="fan"><path d="M${cx} 378 l0 -12 a6 6 0 0 1 6 6z M${cx} 378 l12 0 a6 6 0 0 1 -6 6z M${cx} 378 l0 12 a6 6 0 0 1 -6 -6z M${cx} 378 l-12 0 a6 6 0 0 1 6 -6z" fill="#3a5a8a"/></g></g>`;});
+  fans.innerHTML=h;
+})();
+
+/* ---------- gauges ---------- */
+function arcPath(cx,cy,r,a0,a1){const p=a=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];const [x0,y0]=p(a0),[x1,y1]=p(a1);return `M${x0} ${y0} A${r} ${r} 0 ${a1-a0>Math.PI?1:0} 1 ${x1} ${y1}`;}
+function gauge(el,val,min,max,bands,unit,ticks){
+  const A0=Math.PI*0.75, A1=Math.PI*2.25, ang=v=>A0+(Math.max(min,Math.min(max,v))-min)/(max-min)*(A1-A0);
+  let s=`<path d="${arcPath(100,92,70,A0,A1)}" stroke="#1d2f4c" stroke-width="12" fill="none" stroke-linecap="round"/>`;
+  bands.forEach(b=>{s+=`<path d="${arcPath(100,92,70,ang(b[0]),ang(b[1]))}" stroke="${b[2]}" stroke-width="12" fill="none" opacity=".9"/>`;});
+  if(val!=null){const col=val>=bands[bands.length-1][0]?css('--crit'):val>=bands[0][0]?css('--warn'):css('--water');
+    s+=`<path d="${arcPath(100,92,56,A0,ang(val))}" stroke="${col}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    const a=ang(val);s+=`<line x1="${100+40*Math.cos(a)}" y1="${92+40*Math.sin(a)}" x2="${100+78*Math.cos(a)}" y2="${92+78*Math.sin(a)}" stroke="#e7eef8" stroke-width="2.5" stroke-linecap="round"/>`;}
+  ticks.forEach(t=>{const a=ang(t);s+=`<text class="gt" x="${100+92*Math.cos(a)}" y="${92+92*Math.sin(a)+3}" text-anchor="middle">${t}</text>`;});
+  s+=`<text class="gv" x="100" y="100" text-anchor="middle">${val==null?'—':nf(val,val>=100&&unit==='°C'?0:val<10?1:0)}</text><text class="gu" x="100" y="120" text-anchor="middle">${unit}</text>`;
+  el.innerHTML=s;
+}
+function ring(el,pct){const r=60,c=2*Math.PI*r,v=Math.max(0,Math.min(100,pct||0));
+  el.innerHTML=`<circle cx="75" cy="75" r="${r}" stroke="#1d2f4c" stroke-width="12" fill="none"/><circle cx="75" cy="75" r="${r}" stroke="${css('--oil')}" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="${c*v/100} ${c}" transform="rotate(-90 75 75)"/><text x="75" y="74" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="24" font-weight="600" fill="#e7eef8">${nf(v,1)}%</text><text x="75" y="94" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="11" fill="#7186a6">terpakai</text>`;}
+
+/* ---------- charts ---------- */
+const charts={};
+function opts(yt,extra){const ink3=css('--ink-3'),line=css('--line');return Object.assign({responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1526',borderColor:css('--line-2'),borderWidth:1,titleColor:'#e7eef8',bodyColor:'#e7eef8',padding:10,titleFont:{family:'Saira Semi Condensed',weight:'600'},bodyFont:{family:'JetBrains Mono'}}},
+  scales:{x:{type:'linear',grid:{color:line},border:{color:line},ticks:{color:ink3,maxRotation:0,autoSkip:true,maxTicksLimit:window.innerWidth<600?5:8,font:{family:'JetBrains Mono',size:10.5},callback:v=>rangeH>24?dm(v):hm(v)}},
+          y:{grid:{color:line},border:{display:false},title:{display:!!yt,text:yt,color:ink3,font:{size:11}},ticks:{color:ink3,font:{family:'JetBrains Mono',size:10.5}}}}},extra||{});}
+const bandPlugin={id:'bands',beforeDatasetsDraw(ch,a,o){if(!o||!o.spans)return;const {ctx,chartArea:ca,scales:{x}}=ch;ctx.save();ctx.fillStyle=css('--water-soft');o.spans.forEach(s=>{const x0=Math.max(ca.left,x.getPixelForValue(s[0])),x1=Math.min(ca.right,x.getPixelForValue(s[1]));if(x1>x0)ctx.fillRect(x0,ca.top,x1-x0,ca.bottom-ca.top);});ctx.restore();}};
+const hlinePlugin={id:'hlines',afterDatasetsDraw(ch,a,o){if(!o||!o.lines)return;const {ctx,chartArea:ca,scales:{y}}=ch;o.lines.forEach(l=>{const py=y.getPixelForValue(l.v);if(py<ca.top||py>ca.bottom)return;ctx.save();ctx.strokeStyle=l.c;ctx.setLineDash([5,4]);ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(ca.left,py);ctx.lineTo(ca.right,py);ctx.stroke();ctx.fillStyle=l.c;ctx.font='11px JetBrains Mono, monospace';ctx.textAlign='right';ctx.fillText(l.t,ca.right-4,py-4);ctx.restore();});}};
+const nowPlugin={id:'nowline',afterDatasetsDraw(ch,a,o){if(!o||o.t==null)return;const {ctx,chartArea:ca,scales:{x}}=ch;const px=x.getPixelForValue(o.t);if(px<ca.left||px>ca.right)return;ctx.save();ctx.strokeStyle=css('--ink-2');ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(px,ca.top);ctx.lineTo(px,ca.bottom);ctx.stroke();ctx.fillStyle=css('--ink-2');ctx.font='10.5px JetBrains Mono, monospace';ctx.fillText('sekarang',px+4,ca.top+11);ctx.restore();}};
+if(window.Chart)Chart.register(bandPlugin,hlinePlugin,nowPlugin);
+function mk(id,cfg){if(!window.Chart)return;if(charts[id]){charts[id].destroy();}charts[id]=new Chart(document.getElementById(id),cfg);}
+function lg(el,items){el.innerHTML=items.map(i=>`<span><b class="${i.dash?'dash':''}${i.band?' band':''}" style="${i.band?'':'background:'+i.c+';color:'+i.c}"></b>${i.t}</span>`).join('');}
+
+function col(name){return hist.cols.indexOf(name);}
+function series(name,from){const i=col(name),out=[];hist.rows.forEach(r=>{if(r[0]>=from&&r[i]!=null)out.push({x:r[0],y:r[i]});});return out;}
+function mistSpans(from){const i=col('mist'),sp=[];let st=null,prev=null;hist.rows.forEach(r=>{if(r[0]<from)return;if(r[i]&&st==null)st=r[0];if(!r[i]&&st!=null){sp.push([st,r[0]]);st=null;}prev=r[0];});if(st!=null)sp.push([st,prev]);return sp;}
+
+function renderDays(){
+  if(!snap)return;
+  // days
+  const dd=days.slice(-daysN), SRC={before:['Impor sebelum mist',css('--s2')],after:['Impor sesudah mist',css('--s1')],hist:['Impor riwayat','#7186a6'],live:['Live sensor',css('--oil')]};
+  lg($('#lgDays'),[...new Set(dd.map(d=>d.src||'live'))].map(k=>({t:SRC[k][0],c:SRC[k][1]})));
+  mk('cDays',{type:'bar',data:{labels:dd.map(d=>d.day.slice(8)+'/'+d.day.slice(5,7)+(daysN>90?'/'+d.day.slice(2,4):'')),datasets:[{label:'F_EQA',data:dd.map(d=>d.feqa),backgroundColor:dd.map(d=>SRC[d.src||'live'][1]),borderRadius:daysN>90?1:4,borderSkipped:'bottom'}]},
+    options:opts('',{interaction:{mode:'index',intersect:false},plugins:{...opts().plugins,hlines:{lines:[{v:1,c:css('--ink-2'),t:'1,0'}]},tooltip:{...opts().plugins.tooltip,callbacks:{label:x=>{const d=dd[x.dataIndex];return [` ${SRC[d.src||'live'][0]}`,` F_EQA ${nf(d.feqa,3)}`,` susut ${nf(d.lol,1)} jam`,` θh maks ${nf(d.mx)} °C`,` mist ${nf(d.mist/60,1)} jam`];}}}},scales:{x:{type:'category',grid:{display:false},ticks:{color:css('--ink-3'),font:{family:'JetBrains Mono',size:10},maxRotation:0,autoSkip:true}},y:{...opts().scales.y,beginAtZero:true}}})});
+}
+function renderCharts(){
+  renderDays();
+  const noHist=!hist.rows.length;['enTrend','enLoad'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!noHist;});
+  if(!snap||noHist)return;
+  const now=iv()&&webAnchor?webAnchor:snap.t, from=now-rangeH*36e5;
+  lg($('#lgTrend'),[{t:'Hot-spot HV',c:css('--s2')},{t:'Top-oil',c:css('--s1')},{t:'Udara masuk',c:css('--s3')},{t:'Ambien',c:css('--s4'),dash:1},{t:'Mist',band:1}]);
+  mk('cTrend',{type:'line',data:{datasets:[
+    {label:'Hot-spot HV',data:series('thH',from),borderColor:css('--s2'),borderWidth:2,pointRadius:0},
+    {label:'Top-oil',data:series('to',from),borderColor:css('--s1'),borderWidth:2,pointRadius:0},
+    {label:'Udara masuk',data:series('inlet',from),borderColor:css('--s3'),borderWidth:2,pointRadius:0},
+    {label:'Ambien',data:series('amb',from),borderColor:css('--s4'),borderWidth:2,borderDash:[5,4],pointRadius:0}]},
+    options:opts('°C',{plugins:{...opts().plugins,bands:{spans:mistSpans(from)},hlines:{lines:[{v:snap.cfg.ref,c:css('--warn'),t:'acuan '+snap.cfg.ref+' °C'}]},tooltip:{...opts().plugins.tooltip,callbacks:{title:x=>x.length?dm(x[0].parsed.x):'',label:x=>` ${x.dataset.label}: ${nf(x.parsed.y)} °C`}}},scales:{...opts().scales,x:{...opts().scales.x,min:from,max:now}}})});
+  const lines=(snap.cfg.load||[]).map(p=>({v:snap.cfg.Sr*p/100,c:p>=100?css('--crit'):css('--warn'),t:p+'%'}));
+  mk('cLoad',{type:'line',data:{datasets:[{label:'Beban',data:series('K',from).map(p=>({x:p.x,y:p.y*snap.cfg.Sr})),borderColor:css('--s1'),backgroundColor:'rgba(57,135,229,.15)',fill:'origin',borderWidth:2,pointRadius:0}]},
+    options:opts('',{plugins:{...opts().plugins,hlines:{lines},tooltip:{...opts().plugins.tooltip,callbacks:{title:x=>x.length?dm(x[0].parsed.x):'',label:x=>` ${nf(x.parsed.y)} MVA (${nf(x.parsed.y/snap.cfg.Sr*100,0)}%)`}}},scales:{...opts().scales,x:{...opts().scales.x,min:from,max:now},y:{...opts().scales.y,min:0,suggestedMax:snap.cfg.Sr*1.05}}})});
+
+}
+function renderPred(){
+  if(!snap)return;
+  $('#enPred').hidden=!iv();if(iv()){$('#predNote').textContent='Prediksi memerlukan data sensor live.';return;}const P=snap.mist.pred;lg($('#lgPred'),[{t:'Terukur',c:css('--ink-2')},{t:'Tanpa mist',c:css('--s2'),dash:1},{t:'Dengan mist',c:css('--s1'),dash:1}]);
+  const now=snap.t, from=now-3*36e5;
+  const histS=series('thH',from);
+  const off=P?[{x:now,y:snap.thH}].concat(P.off.map(r=>({x:r[0],y:r[1]}))):[], on=P?[{x:now,y:snap.thH}].concat(P.on.map(r=>({x:r[0],y:r[1]}))):[];
+  const end=P&&P.off.length?P.off[P.off.length-1][0]:now+4*36e5;
+  mk('cPred',{type:'line',data:{datasets:[{label:'Terukur',data:histS,borderColor:css('--ink-2'),borderWidth:2,pointRadius:0},{label:'Tanpa mist',data:off,borderColor:css('--s2'),borderDash:[6,4],borderWidth:2,pointRadius:0},{label:'Dengan mist',data:on,borderColor:css('--s1'),borderDash:[6,4],borderWidth:2,pointRadius:0}]},
+    options:opts('°C',{plugins:{...opts().plugins,nowline:{t:now},hlines:{lines:[{v:snap.cfg.ctrl.sp,c:css('--water'),t:'setpoint '+snap.cfg.ctrl.sp+' °C'}]},tooltip:{...opts().plugins.tooltip,callbacks:{title:x=>x.length?hm(x[0].parsed.x):'',label:x=>` ${x.dataset.label}: ${nf(x.parsed.y)} °C`}}},scales:{...opts().scales,x:{...opts().scales.x,min:from,max:end,ticks:{...opts().scales.x.ticks,callback:v=>hm(v)}}}})});
+  $('#predNote').textContent=P?`Evaluasi ${hm(P.t)} WIB · maks tanpa mist ${nf(P.mxOff)} °C, dengan mist ${nf(P.mxOn)} °C${P.dep!=null?` · θa−θwb ${nf(P.dep)} °C`:''}. Mode ${snap.mist.mode==='auto'?'AUTO memakai prediksi ini':'saat ini tidak memakai prediksi'}.`:'Prediksi muncul setelah mode AUTO melakukan evaluasi pertama (tiap 15 menit).';
+}
+
+/* ---------- main render ---------- */
+const MODE_LBL={auto:'AUTO · prediktif',threshold:'AMBANG suhu',manual:'MANUAL',off:'OFF'};
+function heat(th){const t=Math.max(0,Math.min(1,((th||60)-60)/55));const r=Math.round(60+t*195),g=Math.round(40+t*60),b=Math.round(30-t*10);return `rgb(${r},${g},${b})`;}
+function setTag(id,val,unit,sub,state){const v=$('#v-'+id),s=$('#s-'+id),g=$('#tag-'+id);if(v)v.textContent=val==null?'—':nf(val)+' '+unit;if(s&&sub!=null)s.textContent=sub;if(g){g.classList.remove('warn','crit','water');if(state)g.classList.add(state);}}
+function ageTxt(sec){if(sec==null)return 'belum ada';if(sec<90)return sec+' dtk lalu';if(sec<5400)return Math.round(sec/60)+' mnt lalu';return Math.round(sec/3600)+' jam lalu';}
+function iv(){return MODE==='web'||(MODE==='live'&&!!snap&&snap.liveMin===0);}
+function fillFromImport(){const last=hist.rows[hist.rows.length-1];if(!last||!snap)return;Object.assign(snap,{K:last[9],mva:last[9]!=null&&snap.cfg?+(last[9]*snap.cfg.Sr).toFixed(1):null,amb:last[1],rh:last[2],wb:last[1]!=null&&last[2]!=null?+dtWB(last[1],last[2]).toFixed(1):null,to:last[6],toSrc:last[5]!=null?'impor':'model',thH:last[7],thL:last[8],V:last[10],Ksrc:'impor'});}
+async function loadImportHourly(){try{const r=await getJSON(API+'/import-hourly',12000);hist={cols:r.cols,rows:r.rows};webAnchor=r.rows.length?r.rows[r.rows.length-1][0]:null;}catch(e){}}
+function render(){
+  if(!snap)return;
+  if(MODE==='live'&&iv()&&hist.rows.length)fillFromImport();const s=snap,c=s.cfg;
+  $('#clock').textContent=hm(s.t)+' WIB';$('#updated').textContent='diperbarui '+hm(s.t);
+  $('#refFoot').textContent=c.ref;
+  // notice
+  const nt=$('#notice');const msgs=[];if(s.status)msgs.push(s.status);if(s.Kstale&&s.K!=null)msgs.push(`Data beban terakhir ${s.Kage} menit lalu (${s.Ksrc||'?'}). Perbarui lewat Input data.`);
+  if(iv()){msgs.length=0;msgs.push(MODE==='live'?(webAnchor?`Server aktif, belum ada data sensor ESP32. Menampilkan data riwayat yang Anda impor (s.d. ${new Date(webAnchor+7*36e5).toISOString().slice(0,10)}). Tampilan berganti ke data live begitu ESP32 mengirim data.`:'Server aktif, belum ada data sensor ESP32. Mulai dengan Pengaturan (nameplate Unit 1), lalu Impor riwayat data sebelum mist.'):webAnchor?`Mode web: menampilkan data riwayat yang Anda impor (s.d. ${new Date(webAnchor+7*36e5).toISOString().slice(0,10)}). Sensor live, kendali mist dan input per jam aktif setelah ESP32 dan server terpasang.`:'Mode web: mulai dengan Pengaturan (nameplate Unit 1), lalu Impor riwayat data sebelum mist. Semua data tersimpan di halaman ini dan bisa dibuka dari laptop atau HP.');}
+  if(MODE==='demo')msgs.unshift('Mode demo: data di bawah disimulasikan karena halaman ini tidak terhubung ke edge server. Saat dipasang di edge server, halaman otomatis memakai data sensor ESP32.');
+  if(s.src&&s.src.sim)msgs.unshift('DATA SIMULASI dari ESP32 virtual, bukan data lapangan. Sebelum ESP32 asli dipasang: Pengaturan → matikan simulator → Hapus data uji.');
+  nt.hidden=!msgs.length;nt.textContent=msgs.join(' · ');
+  // alarms
+  const ab=$('#alarmBar');if(s.alarms&&s.alarms.length){const crit=s.alarms.some(a=>a.level==='crit');ab.hidden=false;ab.className='alarmbar'+(crit?'':' warn');ab.innerHTML=`<strong>${crit?'ALARM':'PERINGATAN'}</strong>`+s.alarms.map(a=>`<span class="pill ${a.level}"><i></i>${a.text}</span>`).join('');}else ab.hidden=true;
+  // schematic
+  const sch=$('#schem');sch.classList.toggle('mist-on',!!s.mist.on);$('#mistLbl').textContent=s.mist.on?'MIST ON · '+MODE_LBL[s.mist.mode]:'MIST OFF';$('#mistLbl').setAttribute('fill',s.mist.on?css('--water'):'#7186a6');
+  $('#hotCore').setAttribute('stop-color',heat(s.thH));$('#tankTop').setAttribute('stop-color',heat((s.to||60)+15));$('#hotGlow').setAttribute('opacity',Math.max(.25,Math.min(1,((s.thH||60)-50)/60)));
+  const stT=(v,lim)=>v==null?null:v>=lim.trip?'crit':v>=lim.alarm?'warn':null;
+  setTag('oti',s.to,'°C',s.toSrc==='model'?'estimasi model':s.toSrc==='manual'?`OTI manual · ${s.otiAge} mnt`:`OTI ${s.toSrc||''}`,stT(s.to,c.oti));
+  setTag('hv',s.thH,'°C',s.wh!=null?`WTI ${nf(s.wh)} °C`:'model IEC',stT(s.thH,c.wti));
+  setTag('lv',s.thL,'°C',s.wl!=null?`WTI ${nf(s.wl)} °C`:'model IEC',stT(s.thL,c.wti));
+  const pct=s.K!=null?s.K*100:null;setTag('load',s.mva,'MVA',pct!=null?`${nf(pct,0)}% · ${s.Ksrc||'—'}`:'belum ada data',pct==null?null:pct>=c.load[2]?'crit':pct>=c.load[0]?'warn':null);
+  setTag('amb',s.amb,'°C',s.rh!=null?`RH ${nf(s.rh,0)}% · θwb ${nf(s.wb)}`:'—',null);
+  setTag('in',s.inlet,'°C',s.inlet!=null&&s.amb!=null?`Δ ${nf(s.inlet-s.amb)} K`:'—',s.mist.on?'water':null);
+  setTag('tank',s.tank,'°C','DS18B20',null);
+  $('#srcNote').textContent=`Top-oil: ${s.toSrc==='model'?'model (isi OTI untuk akurasi)':'terukur'} · beban: ${s.Ksrc||'—'}`;
+  // gauges
+  gauge($('#gLoad'),pct,0,130,[[c.load[0],c.load[1],css('--warn')],[c.load[1],c.load[2],'#f28a3d'],[c.load[2],130,css('--crit')]],'% nominal',[0,50,100,130]);
+  $('#gLoadSub').textContent=s.mva!=null?`${nf(s.mva)} MVA · ${nf(s.K*c.Sr*1000/(Math.sqrt(3)*20),0)} A`:'—';
+  gauge($('#gHot'),s.thH,40,140,[[c.ref,110,css('--warn')],[110,140,css('--crit')]],'°C',[40,70,98,140]);
+  $('#gHotSub').textContent=s.V!=null?`V = ${nf(s.V,s.V<0.1?3:2)} × laju normal`:'—';
+  // air
+  const dep=s.amb!=null&&s.wb!=null?s.amb-s.wb:null;
+  $('#airStrip').innerHTML=[['Ambien',nf(s.amb)+' °C'],['RH',nf(s.rh,0)+' %'],['Bola basah',nf(s.wb)+' °C'],['Potensi kabut',dep==null?'—':nf(dep)+' K']].map(x=>`<div><div class="lbl">${x[0]}</div><div class="v">${x[1]}</div></div>`).join('');
+  // mist
+  const orb=$('#orb');orb.classList.toggle('on',!!s.mist.on);orb.textContent=s.mist.on?'ON':'OFF';
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===s.mist.mode));
+  $('#manualBtns').hidden=s.mist.mode!=='manual';
+  $('#mistWhy').textContent=s.mist.reason||'—';
+  const fbOk=s.mist.fb==null?null:s.mist.fb===s.mist.on;
+  $('#mistMeta').innerHTML=[`sejak ${s.mist.since?hm(s.mist.since):'—'}`,`η kabut ${nf(s.mist.eta,2)}`,s.today?`air hari ini ${nf(s.today.water,0)} L`:'',s.mist.fb==null?'umpan balik ESP32: belum ada':fbOk?`<span style="color:var(--good)">ESP32 mengonfirmasi (${s.mist.fbAge} dtk)</span>`:`<span style="color:var(--crit)">ESP32 melapor ${s.mist.fb?'ON':'OFF'} — periksa relay</span>`].filter(Boolean).map(x=>`<span>${x}</span>`).join('');
+  // KPIs
+  const K=(lab,val,unit,d,col)=>`<div class="kpi"><div class="lbl">${lab}</div><div class="v"${col?` style="color:${col}"`:''}>${val}<small> ${unit}</small></div><div class="d">${d}</div></div>`;
+  const t=s.today||{};
+  if(iv()){const cp0=s.compare||{},L0=s.imports||[],lol=L0.reduce((a,i)=>a+(i.lolH||0),0),hrs=L0.reduce((a,i)=>a+(i.hours||0),0),mx=L0.reduce((a,i)=>Math.max(a,i.mx!=null?i.mx:-99),-99);
+    $('#kpis').innerHTML=[
+      K('F<sub>EQA</sub> sebelum mist',nf(cp0.before,3),'p.u.',cp0.before!=null?`${nf(cp0.before*24,1)} jam umur per hari`:'impor data baseline'),
+      K('Susut umur periode data',nf(lol,0),'jam',`${nf(hrs/24,0)} hari data diimpor`),
+      K('θh maksimum',mx>-99?nf(mx):'—','°C','dari seluruh data impor',mx>=110?css('--crit'):mx>=98?css('--warn'):null),
+      K('Sisa umur isolasi',s.life.yearsBefore!=null?(s.life.yearsBefore>500?'> 500':nf(s.life.yearsBefore,1)):'—','tahun','pada pola sebelum mist'),
+      K('Umur terpakai',nf(s.life.pct,1),'%',`${nf(s.life.used,0)} dari ${nf(c.life,0)} jam`),
+      K('Sesudah mist',nf(cp0.after,3),'p.u.',cp0.after!=null?`reduksi ${nf((1-cp0.after/cp0.before)*100,1)}%`:'menunggu data sesudah mist')
+    ].join('');}
+  else $('#kpis').innerHTML=[
+    K('F<sub>EQA</sub> hari ini',nf(t.feqa,3),'p.u.',`${nf(t.hours,1)} jam data · maks θh ${nf(t.mx)} °C`,t.feqa>=1?css('--crit'):null),
+    K('Susut umur hari ini',nf(t.lol,2),'jam',`setara ${nf((t.lol||0)/24*60,1)} menit/jam`),
+    K('F<sub>EQA</sub> 7 hari',nf(s.F7,3),'p.u.',s.F7!=null?`${nf(s.F7*24,1)} jam umur per hari`:'menunggu data'),
+    K('Sisa umur isolasi',s.life.years!=null?(s.life.years>500?'> 500':nf(s.life.years,1)):'—','tahun','pada pola 7 hari terakhir'),
+    K('Mist hari ini',nf((t.mist||0)/60,1),'jam',`${nf(t.water||0,0)} L air`,s.mist.on?css('--water'):null),
+    K('Efektivitas kabut',nf((s.mist.eta||0)*100,0),'%','penurunan suhu udara / batas bola basah')
+  ].join('');
+  // life
+  ring($('#lifeRing'),s.life.pct);$('#lifeRef').textContent=`umur normal ${nf(c.life,0)} jam`;
+  $('#lifeKv').innerHTML=`<dt>Energize</dt><dd>${c.energize}</dd><dt>Terpakai</dt><dd>${nf(s.life.used,0)} jam</dd><dt>Sisa</dt><dd>${nf(s.life.rem,0)} jam</dd><dt>Data terekam</dt><dd>${nf(s.life.dataH,0)} jam</dd><dt>F<sub>EQA</sub> sebelum data</dt><dd>${nf(s.life.fHistUsed,3)} (${s.life.fHistSrc})</dd>`;
+  const cp=s.compare||{},red=cp.before&&(cp.after||cp.live7)?(1-(cp.after||cp.live7)/cp.before)*100:null;
+  $('#cmpBox').innerHTML=`<div><div class="lbl">Sebelum mist</div><div class="v">${nf(cp.before,3)}</div><div class="d">${cp.before!=null?nf(cp.beforeH/24,0)+' hari impor':'impor data baseline'}</div></div><div><div class="lbl">Sesudah mist</div><div class="v">${nf(cp.after!=null?cp.after:cp.live7,3)}</div><div class="d">${cp.after!=null?nf(cp.afterH/24,0)+' hari impor':'live 7 hari'}</div></div><div><div class="lbl">Reduksi</div><div class="v" style="color:${red>0?css('--good'):'inherit'}">${red==null?'—':nf(red,1)+'%'}</div><div class="d">F<sub>EQA</sub>, belum dikoreksi cuaca</div></div>`;
+  if(iv()){$('#schemTitle').textContent=webAnchor?'Kondisi terakhir dari data impor':'Kondisi trafo';$('#schemNote').textContent=webAnchor?'jam terakhir data impor':'menunggu data';$('#clock').textContent=webAnchor?'data s.d. '+new Date(webAnchor+7*36e5).toISOString().slice(0,10):'belum ada data';if(MODE==='web'){$('#updated').textContent='mode web';$('#modeSeg').hidden=true;$('#manualBtns').hidden=true;$('#mistWhy').textContent='Kendali mist aktif setelah ESP32 dan server terpasang. Saat ini halaman dipakai untuk data sebelum mist.';$('#mistMeta').innerHTML='<div class="webcta"><button class="btn primary" type="button" onclick="document.getElementById(\'btnImport\').click()">Impor riwayat</button><button class="btn" type="button" onclick="document.getElementById(\'btnSet\').click()">Pengaturan</button></div>';}}
+  // sensors
+  const sensLbl={ambien:'Ambien (DHT11)',udara_in:'Udara masuk radiator (DHT11)',udara_out:'Udara keluar radiator',tangki:'Dinding tangki (DS18B20)',header_atas:'Header radiator atas',header_bawah:'Header radiator bawah'};
+  let rows=Object.keys(s.sensors).map(k=>{const x=s.sensors[k],stale=x.age==null||x.age>300;return `<tr><td>${sensLbl[k]||k}</td><td class="r mono">${x.t==null?'—':nf(x.t)+' °C'}${x.rh!=null?' · '+nf(x.rh,0)+'%':''}</td><td class="r mono">${ageTxt(x.age)}</td><td class="r"><span class="pill ${x.err?'crit':stale?'warn':'good'}"><i></i>${x.err?'Gagal baca':stale?'Basi':'OK'}</span></td></tr>`;});
+  rows=rows.concat(Object.keys(s.nodes).map(k=>{const n=s.nodes[k],off=n.state!=='online'||n.age>180;return `<tr><td>Node ${k}</td><td class="r mono">${n.rssi!=null?n.rssi+' dBm':''}${n.ip?' · '+n.ip:''}</td><td class="r mono">${ageTxt(n.age)}</td><td class="r"><span class="pill ${off?'crit':'good'}"><i></i>${off?'Offline':'Online'}</span></td></tr>`;}));
+  $('#sensTable').innerHTML='<thead><tr><th>Sensor / perangkat</th><th class="r">Nilai</th><th class="r">Data terakhir</th><th class="r">Status</th></tr></thead><tbody>'+(rows.join('')||'<tr><td colspan="4">Belum ada sensor yang mengirim data.</td></tr>')+'</tbody>';
+  $('#logList').innerHTML=(s.log||[]).map(l=>`<li class="${l.kind}"><span class="tm">${hm(l.t)}</span><span class="dot"></span><span>${esc(l.text)}</span></li>`).join('')||'<li><span></span><span></span><span class="note">Belum ada kejadian.</span></li>';
+}
+const esc=x=>String(x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+function setConn(kind,text){const p=$('#connPill');p.className='pill '+kind;p.innerHTML='<i></i>'+text;}
+
+/* ---------- data sources ---------- */
+async function getJSON(path,timeout=2500){const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),timeout);try{const r=await fetch(path,{signal:ctl.signal,cache:'no-store'});if(!r.ok)throw new Error('http '+r.status);return await r.json();}finally{clearTimeout(t);}}
+async function apiPost(path,body,pin){
+  if(MODE==='web'){try{if(path==='/config'){await webSaveConfig(body);return {ok:true,body:{}};}return {ok:false,status:400,body:{error:'Tidak tersedia di mode web'}};}catch(e){return {ok:false,status:403,body:{error:webErr(e)}};}}
+  if(MODE==='demo'){const r=mmwsApi(DS,{method:'POST',path:API+path,body,pinOk:true},demoNow);if(r.core&&r.core.snapshot){snap=r.core.snapshot;render();renderPred();}return {ok:r.status===200,body:r.body};}
+  const res=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json','x-mmws-pin':pin||''},body:JSON.stringify(body)});let j=null;try{j=await res.json();}catch(e){}
+  if(res.ok&&j&&j.snapshot){snap=j.snapshot;render();renderPred();}
+  return {ok:res.ok,status:res.status,body:j};
+}
+function applySnapLive(s){const firstPaint=!snap;snap=s;cloudFlags(s);
+  const last=hist.rows.length?hist.rows[hist.rows.length-1][0]:0;
+  if(s.t-last>=55000&&s.thH!=null){hist.rows.push([s.t,s.amb,s.rh,s.inlet,s.tank,s.toSrc!=='model'?s.to:null,s.to,s.thH,s.thL,s.K,s.V,s.mist.on?1:0,s.wh,s.wl]);if(hist.rows.length>12000)hist.rows.shift();renderCharts();}
+  render();if(firstPaint||!snap.mist.pred||(window._lastPred!==(snap.mist.pred&&snap.mist.pred.t))){window._lastPred=snap.mist.pred&&snap.mist.pred.t;renderPred();}
+}
+async function startLive(){
+  MODE='live';setConn('live','LIVE');
+  try{hist=await getJSON(API+'/history?hours=168',8000);}catch(e){}
+  if(snap&&snap.liveMin===0)await loadImportHourly();
+  try{days=await getJSON(API+'/days?n=800',8000);}catch(e){}
+  render();renderCharts();renderPred();connectWS();
+  setInterval(async()=>{try{days=await getJSON(API+'/days?n=800',8000);renderCharts();}catch(e){}},10*60000);
+}
+function pollLive(){const go=async()=>{try{const s=await getJSON(API+'/state',8000);if(s&&s.v===1)applySnapLive(s);}catch(e){setConn('off','Terputus — mencoba lagi');}};setInterval(go,15000);}
+function connectWS(){if(POLL){pollLive();return;}
+  try{ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+WSP);}catch(e){scheduleWS();return;}
+  ws.onopen=()=>{wsTries=0;setConn('live','LIVE');};
+  ws.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m&&m.t)applySnapLive(m);}catch(e){}};
+  ws.onclose=()=>{setConn('off','Terputus — mencoba lagi');scheduleWS();};
+  ws.onerror=()=>{try{ws.close();}catch(e){}};
+}
+function scheduleWS(){wsTries++;setTimeout(connectWS,Math.min(30000,1000*Math.pow(2,wsTries)));}
+
+/* ---------- demo mode (core yang sama dengan edge server) ---------- */
+let demoNow=0;
+function startDemo(){
+  MODE='demo';setConn('demo','DEMO');
+  let real=Date.now();const wib=new Date(real+7*36e5);let end=Date.UTC(wib.getUTCFullYear(),wib.getUTCMonth(),wib.getUTCDate(),17,50)-7*36e5;if(end>real)end-=864e5;real=end;demoNow=end-5*864e5;{const w0=new Date(demoNow+7*36e5);demoNow=Date.UTC(w0.getUTCFullYear(),w0.getUTCMonth(),w0.getUTCDate(),0,0)-7*36e5;}
+  while(demoNow<real){demoNow+=60000;mmwsSim(DS,demoNow).forEach(m=>{m.quiet=1;mmwsCore(DS,m,demoNow);});mmwsCore(DS,{topic:'tick',quiet:1},demoNow);}
+  mmwsCore(DS,{topic:'manual',payload:{oti:Math.round(DS.last.to)}},demoNow);
+  pull();
+  setInterval(()=>{demoNow+=60000;mmwsSim(DS,demoNow).forEach(m=>mmwsCore(DS,m,demoNow));const r=mmwsCore(DS,{topic:'tick'},demoNow);snap=r.snapshot;hist.rows.push(DS.hist[DS.hist.length-1]);if(hist.rows.length>12000)hist.rows.shift();render();renderCharts();if(window._lastPred!==(snap.mist.pred&&snap.mist.pred.t)){window._lastPred=snap.mist.pred&&snap.mist.pred.t;renderPred();}},3000);
+}
+function pull(){const h=mmwsApi(DS,{method:'GET',path:API+'/history',query:{hours:168}},demoNow).body;hist={cols:h.cols,rows:DS.hist.slice()};days=mmwsApi(DS,{method:'GET',path:API+'/days',query:{n:800}},demoNow).body;snap=dtSnapshot(DS,demoNow);render();renderCharts();renderPred();}
+
+/* ---------- mode web (website claude.ai, penyimpanan permanen) ---------- */
+let WDB=null, webAnchor=null, W={cfg:null,chunks:[]}, _rb=null;
+async function tryWeb(){try{if(window.claude&&typeof window.claude.use==='function'){const db=await window.claude.use('db');if(db){WDB=db;return true;}}}catch(e){}return false;}
+function webErr(e){return e&&e.code==='invalid_argument'?'Anda tidak punya izin mengubah data di halaman ini.':e&&e.code==='quota_exceeded'?'Penyimpanan penuh. Hapus impor lama.':'Gagal menyimpan ('+((e&&e.code)||'error')+'). Coba lagi.';}
+function webRebuild(){
+  DS={};dtInit(DS);if(W.cfg)DS.cfg=dtMerge(MMWS_DEFAULT_CFG,W.cfg);
+  const by={};W.chunks.forEach(c=>{(by[c.batch]=by[c.batch]||[]).push(c);});
+  Object.keys(by).forEach(b=>{const parts=by[b].sort((a,z)=>a.part-z.part);if(parts.length<(parts[0].parts||1))return;
+    parts.forEach((c,i)=>{const C=c.cols||{},rows=(C.t||[]).map((t,k)=>[t,C.mva[k],C.ta[k],C.rh[k],C.oti[k],C.wh[k],C.wl[k]]);
+      dtImportChunk(DS,{batch:b,phase:c.phase,label:c.label,taDef:c.taDef,rows,final:i===parts.length-1,keepHourly:true},c.createdAt||Date.now());});});
+  const rows=[];webAnchor=null;Object.keys(DS.imports||{}).forEach(k=>{const I=DS.imports[k];(I.hp||[]).forEach(r=>rows.push(r));if(I.t1!=null&&(webAnchor==null||I.t1>webAnchor))webAnchor=I.t1;});
+  rows.sort((a,z)=>a[0]-z[0]);hist={cols:['t','amb','rh','inlet','tank','oti','to','thH','thL','K','V','mist','wh','wl'],rows};
+  snap=dtSnapshot(DS,Date.now());days=mmwsApi(DS,{method:'GET',path:API+'/days',query:{n:800}},Date.now()).body;
+  const last=rows[rows.length-1];if(last){Object.assign(snap,{K:last[9],mva:last[9]!=null?+(last[9]*DS.cfg.Sr).toFixed(1):null,amb:last[1],rh:last[2],wb:last[1]!=null&&last[2]!=null?+dtWB(last[1],last[2]).toFixed(1):null,to:last[6],toSrc:last[5]!=null?'impor':'model',thH:last[7],thL:last[8],V:last[10],Ksrc:'impor'});}
+  render();renderCharts();renderPred();if($('#dlgImport').open)renderImports();
+}
+function webSchedule(){clearTimeout(_rb);_rb=setTimeout(webRebuild,150);}
+function startWeb(){
+  MODE='web';setConn('web','WEB');$('#btnInput').hidden=true;$('#btnExport').hidden=true;
+  DS={};dtInit(DS);snap=dtSnapshot(DS,Date.now());days=[];hist={cols:[],rows:[]};render();renderCharts();renderPred();
+  WDB.doc('mmws/config').onSnapshot(s=>{W.cfg=s.exists?s.data():null;webSchedule();},e=>toast(webErr(e)));
+  WDB.collection('impor').onSnapshot(s=>{W.chunks=s.docs.map(d=>d.data());webSchedule();},e=>toast(webErr(e)));
+}
+async function webSaveConfig(body){const cfg=dtMerge(MMWS_DEFAULT_CFG,dtMerge(DS.cfg||{},body));cfg.updatedAt=Date.now();await WDB.doc('mmws/config').set(cfg);W.cfg=cfg;webSchedule();}
+async function webDeleteBatch(batch){for(const c of W.chunks.filter(x=>x.batch===batch)){await WDB.collection('impor').doc(batch+'-'+c.part).delete();}}
+async function webImport(rows,base,onProg){
+  const span=[rows[0][0],rows[rows.length-1][0]];
+  for(const k of Object.keys(DS.imports||{})){const J=DS.imports[k];if(J.done&&J.t0!=null&&span[0]<=J.t1&&span[1]>=J.t0)throw new Error(`Rentang waktu tumpang tindih dengan impor "${J.label}" (${new Date(J.t0+7*36e5).toISOString().slice(0,10)} s.d. ${new Date(J.t1+7*36e5).toISOString().slice(0,10)}). Hapus impor itu dulu.`);}
+  const CH=3000,n=Math.ceil(rows.length/CH),now=Date.now();
+  for(let i=0;i<n;i++){const sl=rows.slice(i*CH,(i+1)*CH),cols={t:[],mva:[],ta:[],rh:[],oti:[],wh:[],wl:[]};
+    sl.forEach(r=>{cols.t.push(r[0]);cols.mva.push(r[1]);cols.ta.push(r[2]);cols.rh.push(r[3]);cols.oti.push(r[4]);cols.wh.push(r[5]);cols.wl.push(r[6]);});
+    await WDB.collection('impor').doc(base.batch+'-'+i).set({batch:base.batch,phase:base.phase,label:base.label,taDef:base.taDef,part:i,parts:n,cols,createdAt:now});
+    onProg((i+1)/n,i+1,n);}
+}
+
+(async function boot(){
+  try{const s=await getJSON(API+'/state',4000);if(s&&s.v===1){snap=s;await startLive();cloudFlags(s);return;}}catch(e){}
+  if(await tryWeb()){startWeb();return;}
+  startDemo();
+})();
+
+/* ---------- interactions ---------- */
+document.querySelectorAll('#rangeSeg button').forEach(b=>b.onclick=()=>{rangeH=+b.dataset.h;document.querySelectorAll('#rangeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderCharts();});
+function needPin(fieldId){if(MODE==='demo')return '';const v=$('#'+fieldId).value||pinCache;return v;}
+function rememberPin(v){pinCache=v;try{sessionStorage.setItem('mmws-pin',v);}catch(e){}}
+async function setMode(mode,on){const pin=MODE==='demo'?'':pinCache;
+  if(MODE==='live'&&!pin){openSettingsPinOnly(mode,on);return;}
+  const r=await apiPost('/mist',on===undefined?{mode}:{mode,on},pin);if(!r.ok){toast(r.status===401?'PIN salah. Isi PIN di dialog Pengaturan.':'Gagal mengubah mode.');}}
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#mOn').onclick=()=>setMode('manual',true);$('#mOff').onclick=()=>setMode('manual',false);
+function toast(t){const n=$('#notice');n.hidden=false;n.textContent=t;}
+let pendingMode=null;
+function openSettingsPinOnly(mode,on){pendingMode={mode,on};openSet();$('#setMsg').textContent='Masukkan PIN operator untuk mengubah mode mist, lalu simpan.';}
+// input
+$('#btnInput').onclick=()=>{$('#pinFld1').hidden=MODE==='demo'||!!pinCache;$('#inMsg').textContent='';$('#dlgInput').showModal();};
+$('#formInput').addEventListener('submit',async e=>{
+  if(e.submitter&&e.submitter.value==='cancel')return;e.preventDefault();
+  const g=id=>{const v=$('#'+id).value;return v===''?undefined:Number(v);};
+  const body={mw:g('inMw'),a:g('inA'),oti:g('inOti'),wti_hv:g('inWh'),wti_lv:g('inWl')};Object.keys(body).forEach(k=>body[k]===undefined&&delete body[k]);
+  if(!Object.keys(body).length){$('#inMsg').textContent='Isi minimal satu nilai.';return;}
+  const pin=needPin('inPin');$('#inMsg').textContent='Menyimpan…';
+  try{const r=await apiPost('/manual',body,pin);if(r.ok){if(MODE==='live')rememberPin(pin);['inMw','inA','inOti','inWh','inWl'].forEach(i=>$('#'+i).value='');$('#dlgInput').close();}else $('#inMsg').textContent=r.status===401?'PIN salah.':'Gagal menyimpan.';}catch(err){$('#inMsg').textContent='Edge server tidak terjangkau.';}
+});
+document.querySelectorAll('#daysSeg button').forEach(b=>b.onclick=()=>{daysN=+b.dataset.n;document.querySelectorAll('#daysSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderCharts();});
+// ---------- impor riwayat ----------
+function parseTimeCSV(s){s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/),y,mo,d,h,mi;
+  if(m){[y,mo,d,h,mi]=[+m[1],+m[2],+m[3],+m[4],+m[5]];}else{m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})[ T](\d{1,2})[:.](\d{2})/);if(!m)return null;[d,mo,y,h,mi]=[+m[1],+m[2],+m[3],+m[4],+m[5]];}
+  if(mo<1||mo>12||d<1||d>31||h>24||mi>59)return null;return Date.UTC(y,mo-1,d,h-7,mi);}
+function parseHistCSV(text,pf,vLV){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim());if(lines.length<2)throw new Error('Butuh baris header dan minimal satu baris data.');
+  const head=lines[0],sep=head.includes('\t')?'\t':(head.split(';').length>head.split(',').length?';':',');
+  const H=head.split(sep).map(x=>x.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));
+  const AL={t:['waktu','time','timestamp','tanggal','datetime','tanggal_jam','jam'],mva:['mva','s_mva','beban_mva'],mw:['mw','p_mw','beban_mw','beban'],a:['arus_a','arus','a','i_a','arus_20kv','arus_lv'],ta:['ambien','suhu_ambien','ta','ambient','t_ambien'],rh:['rh','kelembaban','humidity'],oti:['oti','top_oil','suhu_minyak'],wh:['wti_hv','wtihv','wti'],wl:['wti_lv','wtilv']};
+  const ix={};Object.keys(AL).forEach(k=>{ix[k]=H.findIndex(x=>AL[k].includes(x));});
+  if(ix.t<0)throw new Error('Kolom waktu tidak ditemukan (gunakan header "waktu").');
+  if(ix.mva<0&&ix.mw<0&&ix.a<0)throw new Error('Butuh kolom beban: mva, mw atau arus_a.');
+  const num=v=>{if(v==null)return null;v=String(v).trim();if(!v)return null;if(sep!==',')v=v.replace(',','.');const n=parseFloat(v);return isFinite(n)?n:null;};
+  const rows=[];let bad=0;
+  for(let i=1;i<lines.length;i++){const c=lines[i].split(sep),g=k=>ix[k]>=0?num(c[ix[k]]):null,t=parseTimeCSV(c[ix.t]);
+    const mva=g('mva')!=null?g('mva'):g('mw')!=null?g('mw')/pf:g('a')!=null?Math.sqrt(3)*vLV*g('a')/1000:null;
+    if(t==null||mva==null){bad++;continue;}rows.push([t,+mva.toFixed(3),g('ta'),g('rh'),g('oti'),g('wh'),g('wl')]);}
+  rows.sort((a,b)=>a[0]-b[0]);return {rows,bad,found:Object.keys(ix).filter(k=>ix[k]>=0)};
+}
+let parsed=null;
+function previewImport(){const t=$('#imText').value;parsed=null;if(!t.trim()){$('#imPreview').textContent='';return;}
+  try{const c=(snap&&snap.cfg)||{};parsed=parseHistCSV(t,+$('#imPf').value||0.95,c.vLV||20);const r=parsed.rows;
+    $('#imPreview').innerHTML=r.length?`Terbaca <strong>${r.length}</strong> baris · ${new Date(r[0][0]+7*36e5).toISOString().slice(0,16).replace('T',' ')} s.d. ${new Date(r[r.length-1][0]+7*36e5).toISOString().slice(0,16).replace('T',' ')} · kolom: ${parsed.found.join(', ')}${parsed.bad?` · <span style="color:var(--warn)">${parsed.bad} baris dilewati</span>`:''}`:'Tidak ada baris valid.';}
+  catch(e){$('#imPreview').textContent=e.message;}}
+$('#imText').addEventListener('input',()=>{clearTimeout(window._ip);window._ip=setTimeout(previewImport,300);});
+$('#imPf').addEventListener('input',previewImport);
+function loadFile(f){if(!f)return;const r=new FileReader();r.onload=()=>{$('#imText').value=String(r.result);if(!$('#imLabel').value)$('#imLabel').value=f.name.replace(/\.[^.]+$/,'');previewImport();};r.readAsText(f);}
+$('#imFile').onchange=e=>loadFile(e.target.files&&e.target.files[0]);
+const dz=$('#dropZone');['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('over');}));['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('over');}));dz.addEventListener('drop',e=>loadFile(e.dataTransfer.files&&e.dataTransfer.files[0]));
+const PH={before:'Sebelum mist',after:'Sesudah mist',hist:'Riwayat'};
+function renderImports(){const L=(snap&&snap.imports)||[];
+  $('#imTable').innerHTML='<thead><tr><th>Periode</th><th>Keterangan</th><th>Rentang</th><th class="r">Baris</th><th class="r">F<sub>EQA</sub></th><th class="r">Susut umur</th><th></th></tr></thead><tbody>'+(L.length?L.map(i=>`<tr><td><span class="pill ${i.phase==='after'?'water':i.phase==='before'?'warn':''}"><i></i>${PH[i.phase]}</span></td><td>${esc(i.label)}${i.done?'':' <span class="note">(belum selesai)</span>'}</td><td class="mono">${i.t0?new Date(i.t0+7*36e5).toISOString().slice(0,10):'—'} → ${i.t1?new Date(i.t1+7*36e5).toISOString().slice(0,10):'—'}</td><td class="r mono">${nf(i.rows,0)}</td><td class="r mono">${nf(i.feqa,3)}</td><td class="r mono">${nf(i.lolH,1)} jam</td><td class="r"><button class="btn ghost" type="button" data-del="${esc(i.batch)}" style="padding:3px 9px;font-size:12px">Hapus</button></td></tr>`).join(''):'<tr><td colspan="7" class="note">Belum ada riwayat yang diimpor.</td></tr>')+'</tbody>';
+  $('#imTable').querySelectorAll('[data-del]').forEach(btn=>{let armed=false;btn.onclick=async()=>{if(!armed){armed=true;btn.textContent='Yakin?';setTimeout(()=>{armed=false;btn.textContent='Hapus';},4000);return;}btn.disabled=true;
+    const r=await apiPostRaw('/import-delete',{batch:btn.dataset.del},MODE==='demo'?'':($('#imPin').value||pinCache));if(r.ok){if(r.body&&r.body.snapshot){snap=r.body.snapshot;render();}await refreshDays();renderImports();}else{$('#imMsg').textContent=r.status===401?'PIN salah.':'Gagal menghapus.';btn.disabled=false;}};});}
+async function apiPostRaw(path,body,pin){
+  if(MODE==='web'){try{if(path==='/import-delete'){await webDeleteBatch(body.batch);return {ok:true,body:{}};}return {ok:false,status:400,body:{error:'Tidak tersedia di mode web'}};}catch(e){return {ok:false,status:403,body:{error:webErr(e)}};}}
+  if(MODE==='demo'){const r=mmwsApi(DS,{method:'POST',path:API+path,body,pinOk:true},demoNow);return {ok:r.status===200,status:r.status,body:r.body};}
+  const res=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json','x-mmws-pin':pin||''},body:JSON.stringify(body)});let j=null;try{j=await res.json();}catch(e){}return {ok:res.ok,status:res.status,body:j};}
+async function refreshDays(){if(MODE==='web')return;if(MODE==='live'&&iv()){await loadImportHourly();render();}try{days=MODE==='demo'?mmwsApi(DS,{method:'GET',path:API+'/days',query:{n:800}},demoNow).body:await getJSON(API+'/days?n=800',8000);renderCharts();}catch(e){}}
+$('#btnImport').onclick=()=>{$('#pinFld3').hidden=MODE==='demo'||MODE==='web'||!!pinCache;$('#imMsg').textContent='';$('#imProg').hidden=true;renderImports();$('#dlgImport').showModal();};
+$('#imGo').onclick=async()=>{
+  if(!parsed||!parsed.rows.length){previewImport();if(!parsed||!parsed.rows.length){$('#imMsg').textContent='Belum ada data valid untuk diimpor.';return;}}
+  const pin=MODE==='demo'?'':($('#imPin').value||pinCache),rows=parsed.rows,CH=3000,n=Math.ceil(rows.length/CH),batch='i'+Date.now().toString(36);
+  const base={batch,phase:$('#imPhase').value,label:$('#imLabel').value.trim()||('Impor '+new Date().toLocaleDateString('id-ID')),taDef:+$('#imTa').value||29};
+  const pg=$('#imProg');pg.hidden=false;const bar=pg.querySelector('span');$('#imGo').disabled=true;
+  if(MODE==='web'){try{await webImport(rows,base,(f,i,k)=>{bar.style.width=(f*100)+'%';$('#imMsg').textContent=`Menyimpan bagian ${i}/${k}…`;});$('#imMsg').textContent=`Selesai: ${rows.length} baris diimpor dan tersimpan.`;$('#imText').value='';$('#imFile').value='';$('#imLabel').value='';parsed=null;$('#imPreview').textContent='';}catch(e){$('#imMsg').textContent=e.message&&!e.code?e.message:webErr(e);await webDeleteBatch(batch).catch(()=>{});}finally{$('#imGo').disabled=false;}return;}
+  try{for(let i=0;i<n;i++){$('#imMsg').textContent=`Mengirim bagian ${i+1}/${n}…`;const r=await apiPostRaw('/import',Object.assign({},base,{rows:rows.slice(i*CH,(i+1)*CH),final:i===n-1},i===0?{span:[rows[0][0],rows[rows.length-1][0]]}:{}),pin);
+      if(!r.ok){$('#imMsg').textContent=r.status===401?'PIN salah.':((r.body&&r.body.error)||'Gagal mengimpor.');if(i>0){await apiPostRaw('/import-delete',{batch},pin);}return;}
+      bar.style.width=((i+1)/n*100)+'%';if(r.body&&r.body.snapshot){snap=r.body.snapshot;render();}}
+    if(MODE==='live'&&pin)rememberPin(pin);
+    $('#imMsg').textContent=`Selesai: ${rows.length} baris diimpor.`;$('#imText').value='';$('#imFile').value='';$('#imLabel').value='';parsed=null;$('#imPreview').textContent='';
+    await refreshDays();renderImports();}
+  catch(e){$('#imMsg').textContent='Edge server tidak terjangkau.';}
+  finally{$('#imGo').disabled=false;}
+};
+// settings
+const CF=[['c_Sr','Sr'],['c_vLV','vLV'],['c_pf','pf'],['c_R','R'],['c_dor','dor'],['c_hgH','hgH'],['c_hgL','hgL'],['c_to','to'],['c_ref','ref'],['c_energize','energize'],['c_life','life'],['c_fHist','fHist']];
+async function openSet(){
+  let cfg=null;try{cfg=MODE==='web'?JSON.parse(JSON.stringify(DS.cfg)):MODE==='demo'?mmwsApi(DS,{method:'GET',path:API+'/config'},demoNow).body:await getJSON(API+'/config',3000);}catch(e){}
+  if(cfg){CF.forEach(([id,k])=>{$('#'+id).value=cfg[k];});$('#c_l1').value=cfg.load[0];$('#c_l2').value=cfg.load[1];$('#c_l3').value=cfg.load[2];$('#c_otiA').value=cfg.oti.alarm;$('#c_otiT').value=cfg.oti.trip;$('#c_wtiA').value=cfg.wti.alarm;$('#c_wtiT').value=cfg.wti.trip;
+    ['sp','hor','rhCut','ton','minOn'].forEach(k=>$('#c_'+k).value=cfg.ctrl[k]);$('#c_mistLpm').value=cfg.mistLpm;}
+  $('#pinFld2').hidden=MODE==='demo'||MODE==='web'||OPEN;$('#simFs').hidden=!POLL||MODE!=='live';$('#simOn').checked=!!(snap&&snap.src&&snap.src.sim);$('#simInfo').textContent=simInfo();$('#setPin').value=pinCache;$('#setMsg').textContent='';$('#dlgSet').showModal();
+}
+$('#btnSet').onclick=()=>{pendingMode=null;openSet();};
+$('#formSet').addEventListener('submit',async e=>{
+  if(e.submitter&&e.submitter.value==='cancel')return;e.preventDefault();
+  const pin=MODE==='demo'||MODE==='web'?'':$('#setPin').value;const n=id=>Number($('#'+id).value);
+  const body={};CF.forEach(([id,k])=>{const v=$('#'+id).value;if(v!=='')body[k]=k==='energize'?v:Number(v);});
+  body.load=[n('c_l1'),n('c_l2'),n('c_l3')];body.oti={alarm:n('c_otiA'),trip:n('c_otiT')};body.wti={alarm:n('c_wtiA'),trip:n('c_wtiT')};
+  body.ctrl={sp:n('c_sp'),hor:n('c_hor'),rhCut:n('c_rhCut'),ton:n('c_ton'),minOn:n('c_minOn')};body.mistLpm=n('c_mistLpm');
+  $('#setMsg').textContent='Menyimpan…';
+  try{const r=await apiPost('/config',body,pin);if(r.ok){if(MODE==='live')rememberPin(pin);$('#dlgSet').close();if(pendingMode){const pm=pendingMode;pendingMode=null;setMode(pm.mode,pm.on);}}else $('#setMsg').textContent=r.status===401?'PIN salah.':((r.body&&r.body.error)||'Gagal menyimpan.');}catch(err){$('#setMsg').textContent='Edge server tidak terjangkau.';}
+});
+// export
+$('#btnExport').onclick=()=>{$('#exText').hidden=true;$('#exLinkWrap').innerHTML='';$('#exMsg').textContent='';$('#dlgExport').showModal();};
+$('#exGo').onclick=()=>{const d=$('#exDays').value,st=$('#exStep').value;
+  if(MODE==='live'){$('#exLinkWrap').innerHTML=`<a class="btn primary" href="${API}/export.csv?days=${d}&step=${st}" download="mmws-${d}hari.csv">Unduh mmws-${d}hari.csv</a>`;}
+  else{const r=mmwsApi(DS,{method:'GET',path:API+'/export.csv',query:{days:d,step:st}},demoNow);const t=$('#exText');t.hidden=false;t.value=r.body;t.select();$('#exMsg').textContent='Mode demo: salin teks CSV di atas.';}};
+function simInfo(){const d=snap&&snap.src;if(!d)return '';if(d.sim)return 'Simulator aktif sejak '+hm(d.simSince)+' WIB. Otomatis berhenti begitu ESP32 asli mengirim data.';if(d.devAge!=null)return 'Sumber data: ESP32 asli, kontak terakhir '+(d.devAge<90?d.devAge+' detik':Math.round(d.devAge/60)+' menit')+' lalu.';return 'Belum ada ESP32 yang mengirim data.';}
+$('#simOn').onchange=async e=>{const r=await apiPost('/sim',{on:e.target.checked},pinCache);if(r.ok){cloudFlags(snap);$('#simInfo').textContent=simInfo();toast(e.target.checked?'Simulator dinyalakan. Data muncul dalam 1 menit.':'Simulator dimatikan.');}else{e.target.checked=!e.target.checked;toast('Gagal mengubah simulator.');}};
+$('#btnReset').onclick=async()=>{if(!confirm('Hapus semua data live, tren dan log? Pengaturan dan data impor tetap.'))return;const r=await apiPostRaw('/reset-data',{confirm:'HAPUS'},pinCache);if(r.ok){toast('Data uji dihapus.');hist={cols:[],rows:[]};try{const s=await getJSON(API+'/state',8000);snap=null;applySnapLive(s);days=await getJSON(API+'/days?n=800',8000);renderCharts();}catch(e){}}else toast('Gagal menghapus data.');};
+setInterval(()=>{if(MODE==='live'&&snap){$('#clock').textContent=hm(Date.now())+' WIB';}},15000);
+window.addEventListener('resize',()=>{clearTimeout(window._rz);window._rz=setTimeout(()=>{renderCharts();renderPred();},250);});
+})();
+</script>
