@@ -1,12 +1,7 @@
 # MMWS — Monitoring Mist Water System (Cloudflare Workers)
-name = "mmws-v2"
-main = "src/worker.js"
+name = "mmws-monitoring-mist-water-system"
+main = "worker.js"
 compatibility_date = "2025-09-01"
-
-# Halaman dashboard (index.html + chart.umd.min.js)
-[assets]
-directory = "./public"
-binding = "ASSETS"
 
 # Satu Durable Object menyimpan seluruh data trafo (penyimpanan SQLite, tersedia di paket gratis)
 [[durable_objects.bindings]]
