@@ -11,3 +11,4 @@
 Unggah ke GitHub: **Add file → Upload files** → seret kelima file → **Commit changes**.
 Cloudflare: Build command **kosong**, Deploy command `npx wrangler deploy`, Root directory `/`.
 Deploy 2 Nov 2026
+Deploy ulang
