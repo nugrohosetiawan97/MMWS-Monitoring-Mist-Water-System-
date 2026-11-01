@@ -1,0 +1,12 @@
+# Membangun paket Cloudflare dari sumber bersama (../src)
+import os, shutil
+here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(here, 'sumber')
+core = open(os.path.join(src, 'core.js')).read()
+open(os.path.join(here, 'src', 'core.mjs'), 'w').write(core + '\nexport { MMWS_DEFAULT_CFG, mmwsCore, mmwsApi, mmwsSim, dtSnapshot, dtInit, dtLog, dtNum };\n')
+h = open(os.path.join(src, 'dashboard.html')).read().replace('/*__CORE__*/', core)
+h = h.replace('<title>MMWS</title>', '<title>MMWS</title>\n<script>window.MMWS_POLL=1</script>', 1)
+h = h.replace('rows=parsed.rows,CH=3000', 'rows=parsed.rows,CH=1000', 1)
+h = h.replace('edge server', 'server')
+os.makedirs(os.path.join(here, 'public'), exist_ok=True)
+open(os.path.join(here, 'public', 'index.html'), 'w').write(h)
+print('ok', len(h))
