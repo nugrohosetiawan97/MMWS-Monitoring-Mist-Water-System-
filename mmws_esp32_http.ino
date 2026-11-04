@@ -3,7 +3,7 @@
   Tesis: Kendali Prediktif IoT pada Mist Water System — Trafo 1 150/20 kV 60 MVA GIS Randugarut
 
   Cara kerja
-   - Sampling DHT11 tiap 2,5 detik, DS18B20 & rata-rata tiap 10 detik.
+   - 3x DHT11 (DHT 1 ambien, DHT 2 udara masuk radiator, DHT 3 bebas) — sampling tiap 2,5 detik, DS18B20 & rata-rata tiap 10 detik.
    - Kirim data ke https://<domain>/api/ingest (POST JSON, header Authorization: Bearer DEVICE_TOKEN).
      Balasan server berisi perintah pompa {"mist":0/1} dan interval kirim berikutnya {"next_s":N}.
      Normal tiap 60 detik; 10 detik setelah perintah mist berubah; 5 detik saat mengirim data cadangan.
@@ -38,6 +38,7 @@ const char* NODE_ID      = "esp32-sensor";
 #define DHT_TYPE        DHT11     // ganti DHT22 bila memakai DHT22
 #define PIN_DHT_AMB     4         // DHT11 ambien (pull-up 10k ke 3V3 bila bukan modul)
 #define PIN_DHT_IN      16        // DHT11 udara masuk radiator
+#define PIN_DHT3        18        // DHT11 ke-3 (nama titik diatur di Pengaturan dashboard), -1 bila tidak dipakai
 #define PIN_ONEWIRE     17        // DS18B20 (pull-up 4k7 ke 3V3)
 #define PIN_RELAY       26        // relay pompa / solenoid mist
 #define RELAY_ACTIVE_LOW true     // modul relay umum aktif LOW
@@ -47,6 +48,7 @@ const char* NODE_ID      = "esp32-sensor";
 // Koreksi kalibrasi terhadap termometer referensi (T_aktual = T_sensor + K)
 const float CAL_AMB_T = 0.0, CAL_AMB_RH = 0.0;
 const float CAL_IN_T  = 0.0, CAL_IN_RH  = 0.0;
+const float CAL_D3_T  = 0.0, CAL_D3_RH  = 0.0;
 const float CAL_DS[3] = {0.0, 0.0, 0.0};
 const char* DS_NAMES[3] = {"tangki", "header_atas", "header_bawah"}; // urutan indeks bus (lihat Serial Monitor)
 
@@ -229,6 +231,7 @@ Ic2wBlX7Jz9TkHCpBB5XJ7k=
 WiFiClientSecure net;
 DHT dhtAmb(PIN_DHT_AMB, DHT_TYPE);
 DHT dhtIn(PIN_DHT_IN, DHT_TYPE);
+DHT dht3(PIN_DHT3 >= 0 ? PIN_DHT3 : 0, DHT_TYPE);
 #if USE_DS18B20
 OneWire oneWire(PIN_ONEWIRE);
 DallasTemperature ds(&oneWire);
@@ -237,11 +240,11 @@ int dsCount = 0;
 
 struct Acc { float t = 0, rh = 0; int n = 0; };
 struct Rec { uint32_t ts; float at, arh, it, irh, tank; };
-Acc accAmb, accIn;
+Acc accAmb, accIn, acc3;
 Rec buf[BUF_MAX]; int bufHead = 0, bufCount = 0;
 float minAt = 0, minArh = 0, minIt = 0, minIrh = 0, minTank = 0; int minN = 0, minTankN = 0;
 float dsLast[3] = {NAN, NAN, NAN};
-float lastAmbT = NAN, lastAmbRh = NAN, lastInT = NAN, lastInRh = NAN;
+float lastAmbT = NAN, lastAmbRh = NAN, lastInT = NAN, lastInRh = NAN, last3T = NAN, last3Rh = NAN;
 bool relayOn = false, serverWant = false;
 unsigned long lastCmdMs = 0, lastSwitchMs = 0, lastSampleMs = 0, lastReadMs = 0, lastMinuteMs = 0, lastSendMs = 0, lastOkMs = 0;
 unsigned long nextSendMs = 5000;
@@ -280,6 +283,8 @@ void readDht() {
   if (!isnan(t) && !isnan(h)) { accAmb.t += t + CAL_AMB_T; accAmb.rh += h + CAL_AMB_RH; accAmb.n++; }
   t = dhtIn.readTemperature(); h = dhtIn.readHumidity();
   if (!isnan(t) && !isnan(h)) { accIn.t += t + CAL_IN_T; accIn.rh += h + CAL_IN_RH; accIn.n++; }
+  if (PIN_DHT3 >= 0) { t = dht3.readTemperature(); h = dht3.readHumidity();
+    if (!isnan(t) && !isnan(h)) { acc3.t += t + CAL_D3_T; acc3.rh += h + CAL_D3_RH; acc3.n++; } }
 }
 
 void finishAcc(Acc& a, float& outT, float& outRh) {
@@ -290,6 +295,7 @@ void finishAcc(Acc& a, float& outT, float& outRh) {
 void sampleAll() {
   finishAcc(accAmb, lastAmbT, lastAmbRh);
   finishAcc(accIn, lastInT, lastInRh);
+  if (PIN_DHT3 >= 0) finishAcc(acc3, last3T, last3Rh);
 #if USE_DS18B20
   if (dsCount > 0) {
     ds.requestTemperatures();
@@ -334,6 +340,7 @@ void sendData() {
   if (PIN_FLOAT >= 0) pos += snprintf(body + pos, sizeof(body) - pos, ",\"float\":%d", waterEmpty() ? 0 : 1);
   pos = addSensor(pos, "ambien", lastAmbT, lastAmbRh, true);
   pos = addSensor(pos, "udara_in", lastInT, lastInRh, true);
+  if (PIN_DHT3 >= 0) pos = addSensor(pos, "dht3", last3T, last3Rh, true);
 #if USE_DS18B20
   for (int i = 0; i < dsCount && i < 3; i++) pos = addSensor(pos, DS_NAMES[i], dsLast[i], 0, false);
 #endif
@@ -390,7 +397,7 @@ void setup() {
   pinMode(PIN_RELAY, OUTPUT);
   digitalWrite(PIN_RELAY, RELAY_ACTIVE_LOW ? HIGH : LOW);  // pompa mati saat boot
   if (PIN_FLOAT >= 0) pinMode(PIN_FLOAT, INPUT_PULLUP);
-  dhtAmb.begin(); dhtIn.begin();
+  dhtAmb.begin(); dhtIn.begin(); if (PIN_DHT3 >= 0) dht3.begin();
 #if USE_DS18B20
   ds.begin(); dsCount = ds.getDeviceCount();
   Serial.printf("[DS18B20] %d sensor terdeteksi\n", dsCount);
