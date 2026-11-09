@@ -10,9 +10,12 @@
    - Server tidak membalas > 5 menit → kendali lokal cadangan (ambang suhu dinding tangki DS18B20).
    - Saat koneksi putus, rata-rata per menit disimpan (maks 24 jam) lalu dikirim ulang 30 menit per kiriman.
    - Float switch: air habis → pompa dipaksa mati, apa pun perintah server.
+   - (v3.3, opsional) Flow meter pulsa (mis. YF-S201) → debit air L/menit; PZEM-004T v3 → daya pompa (W).
+     Dashboard memakai nilai terukur ini untuk pemakaian air, kWh, COP dan analisis ekonomi.
 
   Library (Arduino IDE > Library Manager):
    "DHT sensor library" (Adafruit) + "Adafruit Unified Sensor", "OneWire", "DallasTemperature"
+   Bila USE_PZEM 1: "PZEM-004T-v30" (mandulaj).
    HTTPClient dan WiFiClientSecure sudah termasuk paket board esp32 (Espressif Systems).
   Board: "ESP32 Dev Module".
 */
@@ -23,6 +26,10 @@
 #include <time.h>
 
 #define USE_DS18B20 1
+#define USE_PZEM    0     // 1 bila memasang PZEM-004T v3 untuk daya pompa
+#if USE_PZEM
+#include <PZEM004Tv30.h>
+#endif
 #if USE_DS18B20
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -44,6 +51,10 @@ const char* NODE_ID      = "esp32-sensor";
 #define RELAY_ACTIVE_LOW true     // modul relay umum aktif LOW
 #define PIN_FLOAT       27        // float switch level air (opsional), -1 bila tidak dipakai
 #define FLOAT_EMPTY_LEVEL LOW     // pembacaan saat air habis
+#define PIN_FLOW        -1        // flow meter pulsa: isi 25 bila dipasang (sinyal 5V → pembagi tegangan ke 3V3); -1 = tidak dipakai
+#define FLOW_PULSE_PER_L 450.0    // YF-S201 ±450 pulsa/liter (F = 7,5·Q); kalibrasi: tampung air 1 menit, bandingkan
+#define PZEM_RX         32        // ESP32 RX ← TX PZEM
+#define PZEM_TX         33        // ESP32 TX → RX PZEM
 
 // Koreksi kalibrasi terhadap termometer referensi (T_aktual = T_sensor + K)
 const float CAL_AMB_T = 0.0, CAL_AMB_RH = 0.0;
@@ -238,6 +249,18 @@ DallasTemperature ds(&oneWire);
 int dsCount = 0;
 #endif
 
+#if USE_PZEM
+PZEM004Tv30 pzem(Serial2, PZEM_RX, PZEM_TX);
+#endif
+volatile uint32_t flowPulses = 0;
+uint32_t flowLastPulses = 0; unsigned long flowLastMs = 0; float lastFlow = NAN, lastPw = NAN;
+void IRAM_ATTR onFlowPulse() { flowPulses++; }
+void readFlowPower() {
+  if (PIN_FLOW >= 0) { unsigned long now = millis(); uint32_t p = flowPulses; if (flowLastMs && now > flowLastMs) lastFlow = (p - flowLastPulses) / FLOW_PULSE_PER_L / ((now - flowLastMs) / 60000.0); flowLastPulses = p; flowLastMs = now; }
+#if USE_PZEM
+  float w = pzem.power(); lastPw = isnan(w) ? NAN : w;
+#endif
+}
 struct Acc { float t = 0, rh = 0; int n = 0; };
 struct Rec { uint32_t ts; float at, arh, it, irh, tank; };
 Acc accAmb, accIn, acc3;
@@ -341,6 +364,11 @@ void sendData() {
   pos = addSensor(pos, "ambien", lastAmbT, lastAmbRh, true);
   pos = addSensor(pos, "udara_in", lastInT, lastInRh, true);
   if (PIN_DHT3 >= 0) pos = addSensor(pos, "dht3", last3T, last3Rh, true);
+  readFlowPower();
+  if (PIN_FLOW >= 0 && !isnan(lastFlow)) pos += snprintf(body + pos, sizeof(body) - pos, ",\"flow\":{\"t\":%.2f}", lastFlow);
+#if USE_PZEM
+  if (!isnan(lastPw)) pos += snprintf(body + pos, sizeof(body) - pos, ",\"pompa\":{\"t\":%.0f}", lastPw);
+#endif
 #if USE_DS18B20
   for (int i = 0; i < dsCount && i < 3; i++) pos = addSensor(pos, DS_NAMES[i], dsLast[i], 0, false);
 #endif
@@ -397,6 +425,7 @@ void setup() {
   pinMode(PIN_RELAY, OUTPUT);
   digitalWrite(PIN_RELAY, RELAY_ACTIVE_LOW ? HIGH : LOW);  // pompa mati saat boot
   if (PIN_FLOAT >= 0) pinMode(PIN_FLOAT, INPUT_PULLUP);
+  if (PIN_FLOW >= 0) { pinMode(PIN_FLOW, INPUT_PULLUP); attachInterrupt(digitalPinToInterrupt(PIN_FLOW), onFlowPulse, FALLING); }
   dhtAmb.begin(); dhtIn.begin(); if (PIN_DHT3 >= 0) dht3.begin();
 #if USE_DS18B20
   ds.begin(); dsCount = ds.getDeviceCount();
